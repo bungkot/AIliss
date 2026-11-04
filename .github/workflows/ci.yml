@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-24.04, windows-latest]
         python: ["3.12"]
     steps:
       - uses: actions/checkout@v5
@@ -35,8 +35,8 @@ jobs:
       - name: Validate documentation
         run: python scripts/validate_docs.py
       - name: Upload coverage
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v5
+        if: matrix.os == 'ubuntu-24.04'
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-report
           path: coverage.xml
@@ -44,7 +44,7 @@ jobs:
 
   docker-smoke:
     name: Docker PostgreSQL smoke
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: python
     timeout-minutes: 15
     steps:
