@@ -1,0 +1,18 @@
+name: ailiss-rnd
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:18000:8000"
+    environment:
+      APP_NAME: "AI Lead Intelligence"
+      ENVIRONMENT: rnd
+      DATABASE_URL: sqlite:////app/data/ailiss.db
+    volumes:
+      - ./data:/app/data
+    cpus: 1.5
+    mem_limit: 768m
+    restart: "no"

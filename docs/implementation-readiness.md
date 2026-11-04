@@ -6,6 +6,8 @@ The repository is specification-ready and Phase 1 local RND foundation is implem
 
 Phase 1 provides the FastAPI foundation, file-backed SQLModel/SQLite persistence, Alembic core migration, campaign/source-policy/source/extraction-run contracts, approval audit, and local acceptance tests. Browser automation, MCP tools, LangGraph orchestration, hosted production persistence, queue services, live discovery, and personal-field collection remain outside Phase 1.
 
+The API-only Docker smoke profile is defined by `Dockerfile` and `compose.yml`. Docker validation is limited to FastAPI, Alembic/SQLite, health checks, and API contracts; browser, model, production queue, storage, and observability containers remain deferred to their relevant implementation phases.
+
 ## Implementation gate
 
 Implementation may begin only when package layout and dependency policy are confirmed, source allowlisting is approved, data classification is recorded, fixture sets exist, and CI quality thresholds are configured. Security/privacy review is mandatory before personal fields or live sources are enabled.

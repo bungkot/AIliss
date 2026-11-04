@@ -82,3 +82,19 @@ python scripts\validate_docs.py
 
 Docker containers must remain stopped for normal Phase 1 work. Start a container only for a
 later slice that explicitly validates an optional infrastructure or browser contract.
+
+## Phase 1 Docker smoke test
+
+The API-only Docker profile runs FastAPI and the local SQLite file without PostgreSQL, Redis,
+Celery, browser, Ollama, MinIO, or observability containers:
+
+```powershell
+docker compose up --build -d api
+curl.exe --fail http://127.0.0.1:18000/health
+docker compose logs api
+docker compose down
+```
+
+The profile is capped at one API container, 768 MiB memory, and 1.5 CPUs. Stop all containers
+before and after development; start optional browser, storage, or observability profiles only
+when the relevant phase or slice requires them.
