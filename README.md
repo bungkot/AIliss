@@ -104,9 +104,16 @@ when the relevant phase or slice requires them.
 ## Ollama discovery smoke test
 
 The `Ollama discovery smoke` GitHub Actions workflow is an isolated live-model check. It installs
-Ollama on an Ubuntu runner, pulls the repository's minimum `qwen3:0.6b` profile, and validates a
-small structured inference response. Run it manually from the Actions tab; a weekly Sunday smoke
-run is also configured. Unit and integration tests remain deterministic and provider-mocked.
+Ollama on an Ubuntu runner, pulls the repository's minimum `qwen3:0.6b` profile, and validates the
+authorized API vertical from campaign and discovery prompt through source policy, extraction,
+fixture artifact provenance, bounded Ollama recommendation, and agent-run retrieval. Run it
+manually from the Actions tab; a weekly Sunday smoke run is also configured. Unit and integration
+tests remain deterministic and provider-mocked.
+
+The live-discovery smoke test also creates 200 synthetic wedding-vendor candidate records from an
+HTML fixture. The result is uploaded as the `wedding-discovery-candidates` Actions artifact in
+`wedding-leads.json`. All records are fixture-only candidates with example domains, reserved
+numbered WhatsApp links, no real personal data, and a required human-review lifecycle.
 
 ## Phase 2 RND boundary
 

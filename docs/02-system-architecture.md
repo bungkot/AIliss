@@ -38,6 +38,10 @@ flowchart LR
 - GitHub Actions may run an explicit Ollama discovery smoke workflow on an Ubuntu runner. The
   runner is ephemeral, live model execution is CPU-only, and the model is pulled per run.
   Provider behavior in normal unit and integration CI remains deterministic and offline.
+- GitHub Actions discovery smoke output is fixture-only. It may export synthetic candidate lead
+  records for contract demonstration, but every record remains candidate status and must require
+  human review. It must use example domains, non-real contact identifiers, and no personal-data
+  collection.
 
 Example suggested memory limits for Docker Desktop:
 

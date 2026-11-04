@@ -68,6 +68,7 @@ class OllamaProvider(ProviderAdapter):
                 "model": request.model,
                 "prompt": request.prompt,
                 "stream": False,
+                "think": False,
                 "options": {"num_predict": min(request.max_tokens, 1024)},
             }
         ).encode("utf-8")

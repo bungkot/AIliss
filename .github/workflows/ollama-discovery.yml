@@ -20,6 +20,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -e ".[dev]"
 
       - name: Install Ollama
         run: curl -fsSL https://ollama.com/install.sh | sh
@@ -46,6 +53,23 @@ jobs:
         run: |
           ollama pull qwen3:0.6b
           ollama list | grep "^qwen3:0.6b[[:space:]]"
+
+      - name: Run deterministic full suite
+        run: python -m pytest tests -q
+
+      - name: Run API discovery and Ollama integration smoke
+        env:
+          AILISS_LIVE_OLLAMA: "1"
+          AILISS_DISCOVERY_OUTPUT: ${{ runner.temp }}/wedding-leads.json
+        run: python -m pytest tests/test_ollama_discovery.py -q
+
+      - name: Upload candidate lead sample
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wedding-discovery-candidates
+          path: ${{ runner.temp }}/wedding-leads.json
+          if-no-files-found: warn
 
       - name: Run discovery inference smoke test
         run: |
