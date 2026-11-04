@@ -124,6 +124,30 @@ class Lead(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utc_now, nullable=False)
 
 
+class Artifact(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid_pk, primary_key=True)
+    run_id: uuid.UUID = Field(foreign_key="extractionrun.id", index=True)
+    source_url: str = Field(max_length=2048)
+    content_type: str = Field(max_length=100)
+    byte_count: int = Field(default=0, ge=0)
+    raw_hash: str = Field(min_length=1, max_length=128)
+    browser_version: str | None = Field(default=None, max_length=128)
+    parser_version: str = Field(default="phase2-html-1", max_length=128)
+    status: str = Field(default="staged", max_length=32)
+    created_at: datetime = Field(default_factory=utc_now, nullable=False)
+
+
+class EntityResolutionDecision(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid_pk, primary_key=True)
+    kept_company_id: uuid.UUID = Field(foreign_key="company.id", index=True)
+    merged_company_ids: str = Field(min_length=1, max_length=4000)
+    match_evidence: str = Field(min_length=1, max_length=4000)
+    threshold: float = Field(ge=0.0, le=1.0)
+    actor: str = Field(min_length=1, max_length=200)
+    reversal_data: str = Field(min_length=1, max_length=4000)
+    created_at: datetime = Field(default_factory=utc_now, nullable=False)
+
+
 class Approval(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid_pk, primary_key=True)
     lead_id: uuid.UUID = Field(foreign_key="lead.id", index=True)

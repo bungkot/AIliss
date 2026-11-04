@@ -98,3 +98,10 @@ docker compose down
 The profile is capped at one API container, 768 MiB memory, and 1.5 CPUs. Stop all containers
 before and after development; start optional browser, storage, or observability profiles only
 when the relevant phase or slice requires them.
+
+## Phase 2 RND boundary
+
+Phase 2 uses deterministic HTML fixtures, policy-gated artifact staging, provenance-bearing
+evidence, normalized names/domains, and reversible merge decisions. Live browser navigation is
+not enabled by the API: Playwright is an optional implementation profile and fixture tests
+must remain isolated from campaign identity and shared browser state.

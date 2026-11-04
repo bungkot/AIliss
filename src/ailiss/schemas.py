@@ -74,3 +74,28 @@ class ErrorResponse(BaseModel):
     code: str
     message: str
     correlation_id: str
+
+
+class ArtifactCreate(BaseModel):
+    source_url: str = Field(min_length=1, max_length=2048)
+    content_type: str = Field(default="text/html", max_length=100)
+    encoded_content: str = Field(min_length=1, max_length=2_800_000)
+
+
+class ArtifactResponse(BaseModel):
+    id: UUID
+    run_id: UUID
+    source_url: str
+    content_type: str
+    byte_count: int
+    raw_hash: str
+    status: str
+
+
+class MergeDecisionCreate(BaseModel):
+    kept_company_id: UUID
+    merged_company_ids: list[UUID] = Field(min_length=1, max_length=500)
+    match_evidence: str = Field(min_length=1, max_length=4000)
+    threshold: float = Field(ge=0.0, le=1.0)
+    actor: str = Field(min_length=1, max_length=200)
+    reversal_data: str = Field(min_length=1, max_length=4000)

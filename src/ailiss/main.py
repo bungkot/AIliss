@@ -1,4 +1,6 @@
 from contextlib import asynccontextmanager
+import base64
+import binascii
 from uuid import UUID, uuid4
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
@@ -7,14 +9,17 @@ from sqlmodel import Session
 
 from ailiss.config import get_settings
 from ailiss.db import create_db_and_tables, get_session
-from ailiss.models import Lead
+from ailiss.models import ExtractionRun, Lead
 from ailiss.schemas import (
     ApprovalCreate,
+    ArtifactCreate,
+    ArtifactResponse,
     CampaignCreate,
     CampaignResponse,
     ExtractionRunCreate,
     ExtractionRunResponse,
     LeadResponse,
+    MergeDecisionCreate,
     SourceCreate,
     SourcePolicyCreate,
     SourcePolicyResponse,
@@ -28,7 +33,9 @@ from ailiss.services import (
     register_source,
     split_values,
     approve_lead,
+    record_merge_decision,
 )
+from ailiss.pipeline import stage_fixture_artifact
 
 
 @asynccontextmanager
@@ -190,3 +197,64 @@ def post_lead_approval(
         )
     except LookupError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@app.post("/v1/extraction-runs/{run_id}/artifacts", response_model=ArtifactResponse, status_code=status.HTTP_201_CREATED)
+def post_fixture_artifact(
+    run_id: str,
+    payload: ArtifactCreate,
+    correlation: str = Depends(correlation_id),
+    session: Session = Depends(get_session),
+):
+    run = session.get(ExtractionRun, UUID(run_id))
+    if run is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="extraction_run_not_found")
+    try:
+        raw = base64.b64decode(payload.encoded_content, validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="invalid_base64_content") from exc
+    try:
+        artifact, _evidence = stage_fixture_artifact(
+            session,
+            run.id,
+            payload.source_url,
+            raw,
+            payload.content_type,
+        )
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+    return ArtifactResponse(
+        id=artifact.id,
+        run_id=artifact.run_id,
+        source_url=artifact.source_url,
+        content_type=artifact.content_type,
+        byte_count=artifact.byte_count,
+        raw_hash=artifact.raw_hash,
+        status=artifact.status,
+    )
+
+
+@app.post("/v1/entity-resolution/merge", status_code=status.HTTP_201_CREATED)
+def post_merge_decision(
+    payload: MergeDecisionCreate,
+    correlation: str = Depends(correlation_id),
+    session: Session = Depends(get_session),
+):
+    try:
+        record_merge_decision(
+            session,
+            payload.kept_company_id,
+            payload.merged_company_ids,
+            payload.match_evidence,
+            payload.threshold,
+            payload.actor,
+            payload.reversal_data,
+            correlation,
+        )
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+    return {
+        "status": "recorded",
+        "kept_company_id": payload.kept_company_id,
+        "merged_company_ids": payload.merged_company_ids,
+    }

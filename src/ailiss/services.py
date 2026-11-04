@@ -1,4 +1,5 @@
 from urllib.parse import urlparse
+import ipaddress
 from uuid import UUID
 
 from sqlmodel import Session, select
@@ -103,6 +104,14 @@ def source_allowed(policy: SourcePolicy, url: str) -> bool:
     if parsed.scheme != "https" or not parsed.hostname:
         return False
     hostname = parsed.hostname.lower().rstrip(".")
+    if hostname == "localhost" or hostname.endswith(".localhost"):
+        return False
+    try:
+        address = ipaddress.ip_address(hostname)
+        if address.is_private or address.is_loopback or address.is_link_local or address.is_reserved:
+            return False
+    except ValueError:
+        pass
     for domain in split_values(policy.allowed_domains):
         domain = domain.lower().lstrip(".")
         if hostname == domain or hostname.endswith("." + domain):
@@ -178,3 +187,40 @@ def approve_lead(session: Session, lead_id: UUID, decision: str, reason: str, ac
     session.commit()
     session.refresh(lead)
     return lead
+
+
+def record_merge_decision(
+    session: Session,
+    kept_company_id: UUID,
+    merged_company_ids: list[UUID],
+    match_evidence: str,
+    threshold: float,
+    actor: str,
+    reversal_data: str,
+    correlation_id: str,
+) -> None:
+    if threshold < 0.85:
+        raise ValueError("merge_threshold_too_low")
+    if kept_company_id in merged_company_ids:
+        raise ValueError("merge_kept_id_conflict")
+    from ailiss.models import EntityResolutionDecision
+
+    decision = EntityResolutionDecision(
+        kept_company_id=kept_company_id,
+        merged_company_ids=",".join(str(item) for item in merged_company_ids),
+        match_evidence=match_evidence,
+        threshold=threshold,
+        actor=actor,
+        reversal_data=reversal_data,
+    )
+    session.add(decision)
+    audit(
+        session,
+        actor=actor,
+        action="entity_resolution.merge",
+        entity_type="company",
+        entity_id=kept_company_id,
+        correlation_id=correlation_id,
+        reason=match_evidence,
+    )
+    session.commit()

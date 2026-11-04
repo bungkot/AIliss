@@ -2,11 +2,13 @@
 
 ## Status
 
-The repository is specification-ready and Phase 1 local RND foundation is implemented. This status does not authorize live scraping, personal-data collection, external writes, or production handling.
+The repository is specification-ready and the Phase 1 local RND foundation plus the deterministic Phase 2 contracts are implemented. This status does not authorize live scraping, personal-data collection, external writes, or production handling.
 
 Phase 1 provides the FastAPI foundation, file-backed SQLModel/SQLite persistence, Alembic core migration, campaign/source-policy/source/extraction-run contracts, approval audit, and local acceptance tests. Browser automation, MCP tools, LangGraph orchestration, hosted production persistence, queue services, live discovery, and personal-field collection remain outside Phase 1.
 
 The API-only Docker smoke profile is defined by `Dockerfile` and `compose.yml`. Docker validation is limited to FastAPI, Alembic/SQLite, health checks, and API contracts; browser, model, production queue, storage, and observability containers remain deferred to their relevant implementation phases.
+
+Phase 2 now includes fixture HTML parsing, immutable artifact staging, hashed evidence provenance, domain/name normalization, deterministic entity-resolution precedence, reversible merge decisions, private-network/browser policy checks, challenge detection, fixed browser budgets, and isolated Playwright lifecycle code. Live browser navigation remains disabled until source authorization and fixture security gates are explicitly approved.
 
 ## Implementation gate
 

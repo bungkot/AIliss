@@ -1,5 +1,6 @@
 from sqlmodel import select
 from uuid import UUID
+import base64
 
 from ailiss.models import AuditEvent, Lead
 
@@ -124,3 +125,37 @@ def test_promotion_requires_approval_audit(client, tmp_database):
         select(AuditEvent).where(AuditEvent.entity_id == str(lead.id))
     ).all()
     assert audit_events
+
+
+def test_fixture_artifact_has_hash_and_evidence(client):
+    campaign = create_campaign(client, "Artifact Campaign")
+    policy = client.post(
+        f"/v1/campaigns/{campaign['id']}/source-policy",
+        json={"allowed_domains": ["example.com"], "allowed_fields": ["company_name"]},
+    )
+    assert policy.status_code == 200
+    source = client.post(
+        f"/v1/campaigns/{campaign['id']}/sources",
+        json={"url": "https://example.com"},
+    )
+    run = client.post(
+        "/v1/extraction-runs",
+        json={
+            "campaign_id": campaign["id"],
+            "source_id": source.json()["id"],
+            "config_hash": "sha256:artifact-test",
+        },
+        headers={"Idempotency-Key": "artifact-test-run"},
+    )
+    raw = b"<html><body><h1>Fixture Company</h1></body></html>"
+    artifact = client.post(
+        f"/v1/extraction-runs/{run.json()['id']}/artifacts",
+        json={
+            "source_url": "https://example.com/about",
+            "content_type": "text/html",
+            "encoded_content": base64.b64encode(raw).decode("ascii"),
+        },
+    )
+    assert artifact.status_code == 201
+    assert artifact.json()["byte_count"] == len(raw)
+    assert len(artifact.json()["raw_hash"]) == 64
