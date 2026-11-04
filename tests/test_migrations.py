@@ -3,6 +3,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from ailiss.db import create_database_engine
+
 
 def run_alembic(root: Path, database_url: str, *arguments: str) -> subprocess.CompletedProcess[str]:
     environment = os.environ.copy()
@@ -15,6 +17,15 @@ def run_alembic(root: Path, database_url: str, *arguments: str) -> subprocess.Co
         text=True,
         check=True,
     )
+
+
+def test_postgresql_engine_uses_bounded_pool_settings():
+    engine = create_database_engine(
+        "postgresql+psycopg://ailiss:ailiss@127.0.0.1:5432/ailiss"
+    )
+
+    assert engine.pool.size() == 5
+    assert engine.pool._max_overflow == 10
 
 
 def test_phase3_migration_rolls_back_and_upgrades(tmp_path: Path):

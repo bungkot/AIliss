@@ -8,6 +8,11 @@ class Settings(BaseSettings):
     app_name: str = "AI Lead Intelligence"
     environment: str = "rnd"
     database_url: str = "sqlite:///./data/ailiss.db"
+    database_pool_size: int = 5
+    database_max_overflow: int = 10
+    database_pool_timeout_seconds: float = 10.0
+    database_pool_recycle_seconds: int = 1800
+    database_connect_timeout_seconds: float = 10.0
     ollama_base_url: str = "http://127.0.0.1:11434"
     default_model: str = "qwen3:0.6b"
     agent_max_steps: int = 8

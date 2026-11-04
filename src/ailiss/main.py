@@ -16,7 +16,7 @@ from ailiss.agents import (
     run_bounded_agent,
 )
 from ailiss.config import get_settings
-from ailiss.db import create_db_and_tables, get_session
+from ailiss.db import create_db_and_tables, database_is_ready, get_session
 from ailiss.models import AgentRun, AgentTerminalStatus, Campaign, ExtractionRun, Lead
 from ailiss.pipeline import stage_fixture_artifact
 from ailiss.schemas import (
@@ -95,6 +95,11 @@ async def value_error_handler(request: Request, exc: ValueError):
 
 @app.get("/health")
 def health():
+    if not database_is_ready():
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"status": "unhealthy", "environment": settings.environment},
+        )
     return {"status": "healthy", "environment": settings.environment}
 
 

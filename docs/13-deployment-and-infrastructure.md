@@ -14,6 +14,11 @@ The minimum local composition is FastAPI plus SQLite, implemented with SQLModel,
 
 Use the API-only Compose profile to verify Phase 1 migrations, persistence, health checks, API contracts, resource limits, logs, and container startup. Add optional profiles only when the active implementation slice explicitly tests browser, provider, storage, queue, or observability behavior.
 
+The PostgreSQL profile enables connection pre-ping and bounded pool settings.
+The `/health` endpoint verifies one database round trip and returns HTTP 503
+when the database cannot be reached. SQLite keeps the simple local single-thread
+connection behavior documented for RND.
+
 The following container profiles are the recommended targets. Limits are upper safeguards, not guarantees that the container will use the full allocation.
 
 | Container/profile | Purpose | CPU limit | Memory limit | Required |

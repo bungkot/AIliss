@@ -22,6 +22,15 @@ def test_health(client):
     assert response.json()["status"] == "healthy"
 
 
+def test_health_reports_database_unavailable(client, monkeypatch):
+    import ailiss.main as main
+
+    monkeypatch.setattr(main, "database_is_ready", lambda: False)
+    response = client.get("/health")
+    assert response.status_code == 503
+    assert response.json()["status"] == "unhealthy"
+
+
 def test_campaign_policy_source_and_run(client):
     campaign = create_campaign(client)
 

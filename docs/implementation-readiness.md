@@ -16,6 +16,11 @@ persistence, fixed budgets, and offline tool/policy/schema evaluation fixtures.
 The graph is recommendation-only: lead approval, merge, export, retention, and
 source-policy mutations remain outside agent tool access.
 
+Phase 4 implementation has started with production-compatible database pool
+bounds and a database-backed health check. PostgreSQL remains an explicit RND
+Docker profile; queue services, secrets management, retention automation,
+dashboards, and legal review remain deferred until their implementation slices.
+
 ## Implementation gate
 
 Implementation may begin only when package layout and dependency policy are confirmed, source allowlisting is approved, data classification is recorded, fixture sets exist, and CI quality thresholds are configured. Security/privacy review is mandatory before personal fields or live sources are enabled.
