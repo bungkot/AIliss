@@ -1,0 +1,35 @@
+name: Documentation validation
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - ".github/**"
+      - "README.md"
+      - "scripts/**"
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate repository documentation
+        run: python scripts/validate_docs.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install Mermaid CLI
+        run: npm install --global @mermaid-js/mermaid-cli@11
+      - name: Validate Mermaid diagrams
+        run: |
+          find docs -name '*.md' -print0 | while IFS= read -r -d '' file; do
+            mmdc -i "$file" -o "/dev/null" || exit 1
+          done

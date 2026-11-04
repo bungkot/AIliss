@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Coverage and test output
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+test-results/
+playwright-report/
+
+# Playwright and browser artifacts
+playwright/.cache/
+.cache/ms-playwright/
+test-results/
