@@ -65,7 +65,7 @@ REQUIRED_HARNESS = [
     ".github/instructions/documentation.instructions.md",
     ".github/instructions/agent.instructions.md",
     ".github/instructions/security.instructions.md",
-    ".github/workflows/docs-validation.yml",
+    ".github/workflows/ci.yml",
 ]
 
 REQUIRED_SPECIALIST_AGENTS = [
