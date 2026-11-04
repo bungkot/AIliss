@@ -101,6 +101,13 @@ The profile is capped at one API container, 768 MiB memory, and 1.5 CPUs. Stop a
 before and after development; start optional browser, storage, or observability profiles only
 when the relevant phase or slice requires them.
 
+## Ollama discovery smoke test
+
+The `Ollama discovery smoke` GitHub Actions workflow is an isolated live-model check. It installs
+Ollama on an Ubuntu runner, pulls the repository's minimum `qwen3:0.6b` profile, and validates a
+small structured inference response. Run it manually from the Actions tab; a weekly Sunday smoke
+run is also configured. Unit and integration tests remain deterministic and provider-mocked.
+
 ## Phase 2 RND boundary
 
 Phase 2 uses deterministic HTML fixtures, policy-gated artifact staging, provenance-bearing

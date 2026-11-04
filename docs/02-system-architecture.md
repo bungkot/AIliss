@@ -35,6 +35,9 @@ flowchart LR
 - Do not start an Ollama container by default; use the Windows host Ollama service.
 - The default RND reasoning profile is `qwen3:0.6b`. It is small enough to keep the local LLM available alongside the core stack. Upgrade only to `qwen3:1.7b` or `qwen3:4b` when offline quality tests require it.
 - Use the application log output and OpenTelemetry instrumentation without starting Prometheus and Grafana locally.
+- GitHub Actions may run an explicit Ollama discovery smoke workflow on an Ubuntu runner. The
+  runner is ephemeral, live model execution is CPU-only, and the model is pulled per run.
+  Provider behavior in normal unit and integration CI remains deterministic and offline.
 
 Example suggested memory limits for Docker Desktop:
 
