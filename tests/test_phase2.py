@@ -1,17 +1,24 @@
 import pytest
 from sqlmodel import select
 
+from ailiss.browser import destination_allowed, playwright_fetch, playwright_fetch_fixture
 from ailiss.entity_resolution import resolve_company_match
 from ailiss.extraction import canonicalize_domain, normalize_email
-from ailiss.models import Artifact, Evidence
+from ailiss.models import (
+    Artifact,
+    Evidence,
+    ExtractionRun,
+    Source,
+    SourceStatus,
+)
 from ailiss.pipeline import parse_artifact, stage_fixture_artifact
 from ailiss.services import create_campaign
-from ailiss.models import ExtractionRun, Source, SourceStatus, Lead, LeadStatus, Company
-from ailiss.browser import destination_allowed, playwright_fetch, playwright_fetch_fixture
 
 
 def test_fixture_parser_removes_script_and_style(tmp_database):
-    raw = b"<html><body><h1>PT Example</h1><script>alert(1)</script><style>x{}</style></body></html>"
+    raw = (
+        b"<html><body><h1>PT Example</h1><script>alert(1)</script><style>x{}</style></body></html>"
+    )
     outcome = parse_artifact(raw, "https://example.com")
     assert outcome.observations == ("PT Example",)
     assert len(outcome.artifact_hash) == 64
@@ -37,14 +44,25 @@ def test_normalize_email():
 
 
 def test_entity_resolution_precedence():
-    assert resolve_company_match("Example", "https://example.com", "Other", "https://example.com")[1] == "canonical_domain"
-    assert resolve_company_match("PT Example Indonesia", None, "Example", None)[1] == "exact_normalized_name"
-    assert resolve_company_match("Example Digital", None, "Completely Different", None)[1] == "no_match"
+    assert (
+        resolve_company_match("Example", "https://example.com", "Other", "https://example.com")[1]
+        == "canonical_domain"
+    )
+    assert (
+        resolve_company_match("PT Example Indonesia", None, "Example", None)[1]
+        == "exact_normalized_name"
+    )
+    assert (
+        resolve_company_match("Example Digital", None, "Completely Different", None)[1]
+        == "no_match"
+    )
 
 
 def test_stage_fixture_artifact_creates_provenance(tmp_database):
     campaign = create_campaign(tmp_database, "Fixture Campaign", "fixture-only", "test-correlation")
-    source = Source(campaign_id=campaign.id, url="https://example.com", status=SourceStatus.APPROVED)
+    source = Source(
+        campaign_id=campaign.id, url="https://example.com", status=SourceStatus.APPROVED
+    )
     tmp_database.add(source)
     tmp_database.commit()
     tmp_database.refresh(source)

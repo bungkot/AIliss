@@ -1,6 +1,7 @@
-from sqlmodel import select
-from uuid import UUID
 import base64
+from uuid import UUID
+
+from sqlmodel import select
 
 from ailiss.models import AuditEvent, Lead
 

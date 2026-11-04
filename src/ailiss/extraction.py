@@ -47,7 +47,7 @@ def normalize_company_name(value: str) -> str:
     normalized = normalized.replace(",", "")
     for prefix in ("pt ", "cv "):
         if normalized.startswith(prefix):
-            normalized = normalized[len(prefix):].strip()
+            normalized = normalized[len(prefix) :].strip()
     if normalized.endswith(" indonesia"):
         normalized = normalized[: -len(" indonesia")].rstrip()
     for suffix in (" pt", " cv"):

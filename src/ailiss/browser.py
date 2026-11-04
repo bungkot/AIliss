@@ -24,7 +24,12 @@ def destination_allowed(url: str, allowed_domains: set[str]) -> bool:
         return False
     try:
         address = ip_address(hostname)
-        if address.is_private or address.is_loopback or address.is_link_local or address.is_reserved:
+        if (
+            address.is_private
+            or address.is_loopback
+            or address.is_link_local
+            or address.is_reserved
+        ):
             return False
     except ValueError:
         pass
@@ -47,15 +52,21 @@ def playwright_fetch_fixture(
     if max_bytes <= 0 or max_bytes > 2 * 1024 * 1024:
         raise ValueError("invalid_artifact_limit")
     if not destination_allowed(url, allowed_domains):
-        return BrowserOutcome("policy_rejected", None, None, 0, "", "fixture", "destination not approved")
+        return BrowserOutcome(
+            "policy_rejected", None, None, 0, "", "fixture", "destination not approved"
+        )
 
     html = fetch()
     if html is None:
-        return BrowserOutcome("challenge", None, None, 0, "", "fixture", "challenge or content unavailable")
+        return BrowserOutcome(
+            "challenge", None, None, 0, "", "fixture", "challenge or content unavailable"
+        )
 
     raw = html.encode("utf-8")
     if len(raw) > max_bytes:
-        return BrowserOutcome("blocked", None, None, len(raw), "", "fixture", "artifact limit exceeded")
+        return BrowserOutcome(
+            "blocked", None, None, len(raw), "", "fixture", "artifact limit exceeded"
+        )
     import hashlib
 
     return BrowserOutcome(
@@ -144,7 +155,10 @@ def playwright_fetch(
                     "artifact limit exceeded",
                 )
             lower_html = html.lower()
-            if any(marker in lower_html for marker in ("captcha", "verify you are human", "access denied")):
+            if any(
+                marker in lower_html
+                for marker in ("captcha", "verify you are human", "access denied")
+            ):
                 return BrowserOutcome(
                     "challenge",
                     response.status,

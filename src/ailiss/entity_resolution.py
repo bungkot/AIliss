@@ -20,7 +20,9 @@ def exact_name_match(left: str | None, right: str | None) -> float:
 
 
 def similarity_score(left: str, right: str) -> float:
-    return SequenceMatcher(None, normalize_company_name(left), normalize_company_name(right)).ratio()
+    return SequenceMatcher(
+        None, normalize_company_name(left), normalize_company_name(right)
+    ).ratio()
 
 
 def resolve_company_match(

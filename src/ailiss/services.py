@@ -1,5 +1,5 @@
-from urllib.parse import urlparse
 import ipaddress
+from urllib.parse import urlparse
 from uuid import UUID
 
 from sqlmodel import Session, select
@@ -40,14 +40,16 @@ def audit(
     correlation_id: str,
     reason: str | None = None,
 ) -> None:
-    session.add(AuditEvent(
-        actor=actor[:200],
-        action=action,
-        entity_type=entity_type,
-        entity_id=str(entity_id),
-        correlation_id=correlation_id,
-        reason=reason,
-    ))
+    session.add(
+        AuditEvent(
+            actor=actor[:200],
+            action=action,
+            entity_type=entity_type,
+            entity_id=str(entity_id),
+            correlation_id=correlation_id,
+            reason=reason,
+        )
+    )
 
 
 def create_campaign(session: Session, name: str, prompt: str, correlation_id: str) -> Campaign:
@@ -55,7 +57,14 @@ def create_campaign(session: Session, name: str, prompt: str, correlation_id: st
     session.add(campaign)
     session.commit()
     session.refresh(campaign)
-    audit(session, actor="api", action="campaign.create", entity_type="campaign", entity_id=campaign.id, correlation_id=correlation_id)
+    audit(
+        session,
+        actor="api",
+        action="campaign.create",
+        entity_type="campaign",
+        entity_id=campaign.id,
+        correlation_id=correlation_id,
+    )
     session.commit()
     return campaign
 
@@ -66,7 +75,15 @@ def pause_campaign(session: Session, campaign_id: UUID, correlation_id: str) -> 
         raise LookupError("campaign_not_found")
     campaign.status = CampaignStatus.PAUSED
     session.add(campaign)
-    audit(session, actor="operator", action="campaign.pause", entity_type="campaign", entity_id=campaign.id, correlation_id=correlation_id, reason="operator pause")
+    audit(
+        session,
+        actor="operator",
+        action="campaign.pause",
+        entity_type="campaign",
+        entity_id=campaign.id,
+        correlation_id=correlation_id,
+        reason="operator pause",
+    )
     session.commit()
     session.refresh(campaign)
     return campaign
@@ -82,7 +99,9 @@ def create_source_policy(
 ) -> SourcePolicy:
     if session.get(Campaign, campaign_id) is None:
         raise LookupError("campaign_not_found")
-    existing = session.exec(select(SourcePolicy).where(SourcePolicy.campaign_id == campaign_id)).first()
+    existing = session.exec(
+        select(SourcePolicy).where(SourcePolicy.campaign_id == campaign_id)
+    ).first()
     if existing is not None:
         raise ValueError("source_policy_exists")
     policy = SourcePolicy(
@@ -94,7 +113,14 @@ def create_source_policy(
     session.add(policy)
     session.commit()
     session.refresh(policy)
-    audit(session, actor="policy_owner", action="source_policy.create", entity_type="source_policy", entity_id=policy.id, correlation_id=correlation_id)
+    audit(
+        session,
+        actor="policy_owner",
+        action="source_policy.create",
+        entity_type="source_policy",
+        entity_id=policy.id,
+        correlation_id=correlation_id,
+    )
     session.commit()
     return policy
 
@@ -108,7 +134,12 @@ def source_allowed(policy: SourcePolicy, url: str) -> bool:
         return False
     try:
         address = ipaddress.ip_address(hostname)
-        if address.is_private or address.is_loopback or address.is_link_local or address.is_reserved:
+        if (
+            address.is_private
+            or address.is_loopback
+            or address.is_link_local
+            or address.is_reserved
+        ):
             return False
     except ValueError:
         pass
@@ -119,17 +150,33 @@ def source_allowed(policy: SourcePolicy, url: str) -> bool:
     return False
 
 
-def register_source(session: Session, campaign_id: UUID, url: str, access_basis: str | None, correlation_id: str) -> Source:
-    policy = session.exec(select(SourcePolicy).where(SourcePolicy.campaign_id == campaign_id)).first()
+def register_source(
+    session: Session, campaign_id: UUID, url: str, access_basis: str | None, correlation_id: str
+) -> Source:
+    policy = session.exec(
+        select(SourcePolicy).where(SourcePolicy.campaign_id == campaign_id)
+    ).first()
     if policy is None:
         raise policy_error()
     if not source_allowed(policy, url):
         raise policy_error()
-    source = Source(campaign_id=campaign_id, url=url.strip(), access_basis=access_basis, status=SourceStatus.APPROVED)
+    source = Source(
+        campaign_id=campaign_id,
+        url=url.strip(),
+        access_basis=access_basis,
+        status=SourceStatus.APPROVED,
+    )
     session.add(source)
     session.commit()
     session.refresh(source)
-    audit(session, actor="api", action="source.register", entity_type="source", entity_id=source.id, correlation_id=correlation_id)
+    audit(
+        session,
+        actor="api",
+        action="source.register",
+        entity_type="source",
+        entity_id=source.id,
+        correlation_id=correlation_id,
+    )
     session.commit()
     return source
 
@@ -148,13 +195,21 @@ def create_extraction_run(
     if campaign.status != CampaignStatus.ACTIVE:
         raise ValueError("campaign_paused")
     source = session.get(Source, source_id)
-    if source is None or source.campaign_id != campaign_id or source.status != SourceStatus.APPROVED:
+    if (
+        source is None
+        or source.campaign_id != campaign_id
+        or source.status != SourceStatus.APPROVED
+    ):
         raise policy_error()
     existing = session.exec(
         select(ExtractionRun).where(ExtractionRun.idempotency_key == idempotency_key)
     ).first()
     if existing is not None:
-        if existing.campaign_id != campaign_id or existing.source_id != source_id or existing.config_hash != config_hash:
+        if (
+            existing.campaign_id != campaign_id
+            or existing.source_id != source_id
+            or existing.config_hash != config_hash
+        ):
             raise ValueError("idempotency_conflict")
         return existing
     run = ExtractionRun(
@@ -167,12 +222,21 @@ def create_extraction_run(
     session.add(run)
     session.commit()
     session.refresh(run)
-    audit(session, actor="api", action="extraction_run.create", entity_type="extraction_run", entity_id=run.id, correlation_id=correlation_id)
+    audit(
+        session,
+        actor="api",
+        action="extraction_run.create",
+        entity_type="extraction_run",
+        entity_id=run.id,
+        correlation_id=correlation_id,
+    )
     session.commit()
     return run
 
 
-def approve_lead(session: Session, lead_id: UUID, decision: str, reason: str, actor: str, correlation_id: str) -> Lead:
+def approve_lead(
+    session: Session, lead_id: UUID, decision: str, reason: str, actor: str, correlation_id: str
+) -> Lead:
     lead = session.get(Lead, lead_id)
     if lead is None:
         raise LookupError("lead_not_found")
@@ -182,8 +246,17 @@ def approve_lead(session: Session, lead_id: UUID, decision: str, reason: str, ac
         lead.status = LeadStatus.REJECTED
     session.add(lead)
     from ailiss.models import Approval
+
     session.add(Approval(lead_id=lead.id, actor=actor, decision=decision, reason=reason))
-    audit(session, actor=actor, action=f"lead.{decision}", entity_type="lead", entity_id=lead.id, correlation_id=correlation_id, reason=reason)
+    audit(
+        session,
+        actor=actor,
+        action=f"lead.{decision}",
+        entity_type="lead",
+        entity_id=lead.id,
+        correlation_id=correlation_id,
+        reason=reason,
+    )
     session.commit()
     session.refresh(lead)
     return lead

@@ -1,6 +1,6 @@
-from contextlib import asynccontextmanager
 import base64
 import binascii
+from contextlib import asynccontextmanager
 from uuid import UUID, uuid4
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
@@ -10,6 +10,7 @@ from sqlmodel import Session
 from ailiss.config import get_settings
 from ailiss.db import create_db_and_tables, get_session
 from ailiss.models import ExtractionRun, Lead
+from ailiss.pipeline import stage_fixture_artifact
 from ailiss.schemas import (
     ApprovalCreate,
     ArtifactCreate,
@@ -26,16 +27,15 @@ from ailiss.schemas import (
     SourceResponse,
 )
 from ailiss.services import (
+    approve_lead,
     create_campaign,
     create_extraction_run,
     create_source_policy,
     pause_campaign,
+    record_merge_decision,
     register_source,
     split_values,
-    approve_lead,
-    record_merge_decision,
 )
-from ailiss.pipeline import stage_fixture_artifact
 
 
 @asynccontextmanager
@@ -74,7 +74,11 @@ async def value_error_handler(request: Request, exc: ValueError):
     return JSONResponse(
         status_code=mapping.get(code, status.HTTP_400_BAD_REQUEST),
         headers={"x-correlation-id": correlation},
-        content={"code": code, "message": "The request could not be processed.", "correlation_id": correlation},
+        content={
+            "code": code,
+            "message": "The request could not be processed.",
+            "correlation_id": correlation,
+        },
     )
 
 
@@ -131,17 +135,27 @@ def post_source_policy(
     )
 
 
-@app.post("/v1/campaigns/{campaign_id}/sources", response_model=SourceResponse, status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/v1/campaigns/{campaign_id}/sources",
+    response_model=SourceResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def post_source(
     campaign_id: str,
     payload: SourceCreate,
     correlation: str = Depends(correlation_id),
     session: Session = Depends(get_session),
 ):
-    return register_source(session, UUID(campaign_id), payload.url, payload.access_basis, correlation)
+    return register_source(
+        session, UUID(campaign_id), payload.url, payload.access_basis, correlation
+    )
 
 
-@app.post("/v1/extraction-runs", response_model=ExtractionRunResponse, status_code=status.HTTP_202_ACCEPTED)
+@app.post(
+    "/v1/extraction-runs",
+    response_model=ExtractionRunResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
 def post_extraction_run(
     payload: ExtractionRunCreate,
     idempotency_key: str = Header(min_length=1, max_length=128),
@@ -165,6 +179,7 @@ def post_extraction_run(
 @app.get("/v1/extraction-runs/{run_id}", response_model=ExtractionRunResponse)
 def get_extraction_run(run_id: str, session: Session = Depends(get_session)):
     from ailiss.models import ExtractionRun
+
     run = session.get(ExtractionRun, UUID(run_id))
     if run is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="extraction_run_not_found")
@@ -199,7 +214,11 @@ def post_lead_approval(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 
-@app.post("/v1/extraction-runs/{run_id}/artifacts", response_model=ArtifactResponse, status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/v1/extraction-runs/{run_id}/artifacts",
+    response_model=ArtifactResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def post_fixture_artifact(
     run_id: str,
     payload: ArtifactCreate,

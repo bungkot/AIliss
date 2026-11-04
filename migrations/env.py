@@ -4,8 +4,8 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
-from ailiss.config import database_path, get_settings
 from ailiss import models  # noqa: F401
+from ailiss.config import database_path, get_settings
 
 config = context.config
 if config.config_file_name is not None:
