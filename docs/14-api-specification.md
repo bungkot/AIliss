@@ -24,6 +24,16 @@ Phase 1 also exposes campaign source-policy and source registration contracts:
 | POST /v1/campaigns/{campaign_id}/source-policy | Create the campaign source policy |
 | POST /v1/campaigns/{campaign_id}/sources | Register a policy-approved source |
 
+Phase 3 recommendation-only agent contracts:
+
+| Method and path | Purpose |
+|---|---|
+| POST /v1/agent-runs | Run a bounded recommendation graph with mock or Ollama provider |
+| GET /v1/agent-runs/{run_id} | Retrieve provider, budget, citation, and terminal outcome metadata |
+
+Agent runs may use read-only tools only. Approval, merge, export, retention, source
+registration, and other domain mutations remain unavailable to agent tools.
+
 ```mermaid
 sequenceDiagram
   participant Client

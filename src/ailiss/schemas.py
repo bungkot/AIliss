@@ -99,3 +99,27 @@ class MergeDecisionCreate(BaseModel):
     threshold: float = Field(ge=0.0, le=1.0)
     actor: str = Field(min_length=1, max_length=200)
     reversal_data: str = Field(min_length=1, max_length=4000)
+
+
+class AgentRunCreate(BaseModel):
+    campaign_id: UUID
+    prompt: str = Field(min_length=1, max_length=4000)
+    provider: str = Field(default="mock", pattern=r"^(mock|ollama)$")
+    model: str = Field(default="qwen3:0.6b", max_length=128)
+    config_hash: str = Field(min_length=1, max_length=128)
+
+
+class AgentRunResponse(BaseModel):
+    id: UUID
+    campaign_id: UUID
+    provider: str
+    model: str
+    config_hash: str
+    terminal_status: str
+    recommendation: str
+    steps: int
+    tool_calls: int
+    tokens: int
+    bytes_used: int
+    spend_usd: float
+    wall_seconds: float

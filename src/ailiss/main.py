@@ -7,11 +7,21 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from sqlmodel import Session
 
+from ailiss.agents import (
+    Budget,
+    MockProvider,
+    OllamaProvider,
+    ToolGateway,
+    ToolOutcome,
+    run_bounded_agent,
+)
 from ailiss.config import get_settings
 from ailiss.db import create_db_and_tables, get_session
-from ailiss.models import ExtractionRun, Lead
+from ailiss.models import AgentRun, AgentTerminalStatus, Campaign, ExtractionRun, Lead
 from ailiss.pipeline import stage_fixture_artifact
 from ailiss.schemas import (
+    AgentRunCreate,
+    AgentRunResponse,
     ApprovalCreate,
     ArtifactCreate,
     ArtifactResponse,
@@ -28,6 +38,7 @@ from ailiss.schemas import (
 )
 from ailiss.services import (
     approve_lead,
+    audit,
     create_campaign,
     create_extraction_run,
     create_source_policy,
@@ -85,6 +96,97 @@ async def value_error_handler(request: Request, exc: ValueError):
 @app.get("/health")
 def health():
     return {"status": "healthy", "environment": settings.environment}
+
+
+@app.post("/v1/agent-runs", response_model=AgentRunResponse, status_code=status.HTTP_202_ACCEPTED)
+def post_agent_run(
+    payload: AgentRunCreate,
+    correlation: str = Depends(correlation_id),
+    session: Session = Depends(get_session),
+):
+    campaign = session.get(Campaign, payload.campaign_id)
+    if campaign is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="campaign_not_found")
+
+    def campaign_get(*, campaign_id: str, correlation_id: str) -> ToolOutcome:
+        if campaign_id != str(payload.campaign_id):
+            return ToolOutcome(code="denied", message="campaign_scope_mismatch")
+        return ToolOutcome(
+            code="ok",
+            data={
+                "campaign_id": str(campaign.id),
+                "status": campaign.status.value,
+            },
+        )
+
+    gateway = ToolGateway({"campaign.get": campaign_get})
+    provider = (
+        OllamaProvider(
+            settings.ollama_base_url,
+            timeout_seconds=min(settings.agent_max_wall_seconds, 10.0),
+        )
+        if payload.provider == "ollama"
+        else MockProvider()
+    )
+    budget = Budget(
+        max_steps=settings.agent_max_steps,
+        max_tool_calls=settings.agent_max_tool_calls,
+        max_tokens=settings.agent_max_tokens,
+        max_wall_seconds=settings.agent_max_wall_seconds,
+        max_bytes=settings.agent_max_bytes,
+        max_spend_usd=settings.agent_max_spend_usd,
+    )
+    result = run_bounded_agent(
+        campaign_id=str(payload.campaign_id),
+        prompt=payload.prompt,
+        correlation_id=correlation,
+        gateway=gateway,
+        provider=provider,
+        budget=budget,
+        model=payload.model,
+    )
+    terminal_status = AgentTerminalStatus(result["terminal_status"])
+    agent_run = AgentRun(
+        campaign_id=payload.campaign_id,
+        prompt=payload.prompt,
+        prompt_version="phase3-agent-1",
+        provider=payload.provider,
+        model=payload.model,
+        config_hash=payload.config_hash,
+        tool_allowlist="campaign.get,source.policy_check",
+        redaction_flags="no-personal-fields",
+        citations=",".join(result.get("citations", [])),
+        terminal_status=terminal_status,
+        recommendation=result.get("recommendation", ""),
+        steps=result.get("steps", 0),
+        tool_calls=result.get("tool_calls", 0),
+        tokens=result.get("tokens", 0),
+        bytes_used=result.get("bytes_used", 0),
+        spend_usd=result.get("spend_usd", 0.0),
+        wall_seconds=result.get("wall_seconds", 0.0),
+    )
+    session.add(agent_run)
+    session.commit()
+    session.refresh(agent_run)
+    audit(
+        session,
+        actor="agent",
+        action="agent.run",
+        entity_type="agent_run",
+        entity_id=agent_run.id,
+        correlation_id=correlation,
+        reason=f"terminal_status:{terminal_status.value}",
+    )
+    session.commit()
+    return agent_run
+
+
+@app.get("/v1/agent-runs/{run_id}", response_model=AgentRunResponse)
+def get_agent_run(run_id: str, session: Session = Depends(get_session)):
+    agent_run = session.get(AgentRun, UUID(run_id))
+    if agent_run is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="agent_run_not_found")
+    return agent_run
 
 
 @app.post("/v1/campaigns", response_model=CampaignResponse, status_code=status.HTTP_201_CREATED)

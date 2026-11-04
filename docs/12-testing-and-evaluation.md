@@ -31,3 +31,16 @@ flowchart TD
 - Targeted tests pass for every Python change.
 - Fixtures cover success, malformed data, challenge, timeout, conflict, and budget exhaustion.
 - Evaluation thresholds are configured and reported; lowering a threshold requires review.
+
+## Phase 3 offline gates
+
+The Phase 3 agent evaluation dataset is
+[`evals/phase3-agent-cases.json`](../evals/phase3-agent-cases.json). Current fixed
+CI thresholds are:
+
+- Tool validity: 100%.
+- Policy compliance: 100%.
+- Schema validity: 100%.
+
+These thresholds are enforced by the Phase 3 evaluation tests. Provider/model
+tests use mock or contract adapters in CI; live Ollama calls are not required.

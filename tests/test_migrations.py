@@ -17,17 +17,17 @@ def run_alembic(root: Path, database_url: str, *arguments: str) -> subprocess.Co
     )
 
 
-def test_phase2_migration_rolls_back_and_upgrades(tmp_path: Path):
+def test_phase3_migration_rolls_back_and_upgrades(tmp_path: Path):
     root = Path(__file__).resolve().parents[1]
     migration_file = (tmp_path / "migration.db").resolve().as_posix()
     database_url = f"sqlite:///{migration_file}"
 
     run_alembic(root, database_url, "upgrade", "head")
     current = run_alembic(root, database_url, "current")
-    assert "002_phase2" in current.stdout
+    assert "003_phase3" in current.stdout
 
-    run_alembic(root, database_url, "downgrade", "001_phase1")
+    run_alembic(root, database_url, "downgrade", "002_phase2")
     current = run_alembic(root, database_url, "current")
-    assert "001_phase1" in current.stdout
+    assert "002_phase2" in current.stdout
 
     run_alembic(root, database_url, "upgrade", "head")

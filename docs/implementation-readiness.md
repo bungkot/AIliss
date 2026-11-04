@@ -10,6 +10,12 @@ The API-only Docker smoke profile is defined by `Dockerfile` and `compose.yml`. 
 
 Phase 2 now includes fixture HTML parsing, immutable artifact staging, hashed evidence provenance, domain/name normalization, deterministic entity-resolution precedence, reversible merge decisions, private-network/browser policy checks, challenge detection, fixed browser budgets, and isolated Playwright lifecycle code. Live browser navigation remains disabled until source authorization and fixture security gates are explicitly approved.
 
+Phase 3 implementation has started with a bounded LangGraph/MCP-style tool
+gateway, replaceable mock and Ollama provider contracts, typed agent-run
+persistence, fixed budgets, and offline tool/policy/schema evaluation fixtures.
+The graph is recommendation-only: lead approval, merge, export, retention, and
+source-policy mutations remain outside agent tool access.
+
 ## Implementation gate
 
 Implementation may begin only when package layout and dependency policy are confirmed, source allowlisting is approved, data classification is recorded, fixture sets exist, and CI quality thresholds are configured. Security/privacy review is mandatory before personal fields or live sources are enabled.

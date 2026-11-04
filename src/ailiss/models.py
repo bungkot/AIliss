@@ -166,3 +166,34 @@ class AuditEvent(SQLModel, table=True):
     correlation_id: str = Field(min_length=1, max_length=128)
     reason: str | None = Field(default=None, max_length=2000)
     created_at: datetime = Field(default_factory=utc_now, nullable=False)
+
+
+class AgentTerminalStatus(str, Enum):
+    COMPLETE = "complete"
+    PARTIAL = "partial"
+    BLOCKED = "blocked"
+    RETRYABLE = "retryable"
+    POLICY_REJECTED = "policy_rejected"
+    BUDGET_EXHAUSTED = "budget_exhausted"
+
+
+class AgentRun(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid_pk, primary_key=True)
+    campaign_id: uuid.UUID = Field(foreign_key="campaign.id", index=True)
+    prompt: str = Field(min_length=1, max_length=4000)
+    prompt_version: str = Field(min_length=1, max_length=128)
+    provider: str = Field(min_length=1, max_length=128)
+    model: str = Field(min_length=1, max_length=128)
+    config_hash: str = Field(min_length=1, max_length=128)
+    tool_allowlist: str = Field(min_length=1, max_length=4000)
+    redaction_flags: str = Field(min_length=1, max_length=1000)
+    citations: str = Field(default="", max_length=8000)
+    terminal_status: AgentTerminalStatus = Field(default=AgentTerminalStatus.BLOCKED)
+    recommendation: str = Field(default="", max_length=4000)
+    steps: int = Field(default=0, ge=0)
+    tool_calls: int = Field(default=0, ge=0)
+    tokens: int = Field(default=0, ge=0)
+    bytes_used: int = Field(default=0, ge=0)
+    spend_usd: float = Field(default=0.0, ge=0.0)
+    wall_seconds: float = Field(default=0.0, ge=0.0)
+    created_at: datetime = Field(default_factory=utc_now, nullable=False)
