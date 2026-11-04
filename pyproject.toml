@@ -33,6 +33,9 @@ production = [
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers"
 testpaths = ["tests"]
+filterwarnings = [
+  "ignore::langchain_core._api.deprecation.LangChainPendingDeprecationWarning:langgraph.cache.base",
+]
 
 [tool.ruff]
 line-length = 100
