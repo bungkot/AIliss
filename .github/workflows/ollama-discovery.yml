@@ -57,7 +57,8 @@ jobs:
               "prompt": "Return only a JSON object with keys status and message. Set status to healthy and message to discovery smoke test.",
               "format": "json",
               "stream": false,
-              "options": {"temperature": 0, "num_predict": 128}
+              "think": false,
+              "options": {"temperature": 0, "num_predict": 256}
             }' \
             > "$RUNNER_TEMP/ollama-response.json"
           python -c '
