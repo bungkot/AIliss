@@ -63,7 +63,7 @@ jobs:
             if grep -Eq '^```mermaid[[:space:]]*$' "$file"; then
               output="${validation_dir}/diagram.svg"
               echo "Validating Mermaid diagram(s) in $file"
-              mmdc -i "$file" -o "$output" || exit 1
+              mmdc -p scripts/mermaid-puppeteer.json -i "$file" -o "$output" || exit 1
             fi
           done
           rm -f "${validation_dir}"/*.svg "${validation_dir}"/*.png "${validation_dir}"/*.pdf
