@@ -1,4 +1,4 @@
-name: Python and Docker validation
+name: AIliss Integrations
 
 on:
   push:
