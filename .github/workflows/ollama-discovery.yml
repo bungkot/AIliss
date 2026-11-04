@@ -2,6 +2,17 @@ name: Ollama discovery smoke
 
 on:
   workflow_dispatch:
+    inputs:
+      discovery_prompt:
+        description: "Discovery prompt for the policy-gated fixture campaign"
+        required: false
+        default: "Build candidate customer leads for Indonesian wedding vendors from approved public fixture sources."
+        type: string
+      target_count:
+        description: "Maximum number of candidate leads to discover and rank"
+        required: false
+        default: "200"
+        type: string
   schedule:
     - cron: "0 3 * * 0"
 
@@ -62,6 +73,8 @@ jobs:
           AILISS_LIVE_OLLAMA: "1"
           AILISS_OLLAMA_TIMEOUT_SECONDS: "30"
           AILISS_DISCOVERY_OUTPUT: ${{ runner.temp }}/wedding-leads.json
+          AILISS_DISCOVERY_PROMPT: ${{ inputs.discovery_prompt || 'Build 200 candidate customer leads for Indonesian wedding vendors. Categories include wedding organizers, photographers, videographers, content creators, bridal studios, and digital invitation vendors. Each candidate must have at least one business contact.' }}
+          AILISS_DISCOVERY_TARGET_COUNT: ${{ inputs.target_count || '200' }}
         run: python -m pytest tests/test_ollama_discovery.py -q
 
       - name: Upload candidate lead sample
@@ -71,6 +84,46 @@ jobs:
           name: wedding-discovery-candidates
           path: ${{ runner.temp }}/wedding-leads.json
           if-no-files-found: warn
+
+      - name: Publish discovery workflow summary
+        if: always()
+        env:
+          AILISS_DISCOVERY_OUTPUT: ${{ runner.temp }}/wedding-leads.json
+        run: |
+          python -c '
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path(os.environ["AILISS_DISCOVERY_OUTPUT"])
+          if not path.exists():
+              print("## Discovery workflow")
+              print("")
+              print("No discovery output was produced.")
+              raise SystemExit(0)
+
+          result = json.loads(path.read_text(encoding="utf-8"))
+          summary = os.environ["GITHUB_STEP_SUMMARY"]
+          lines = [
+              "## Discovery workflow",
+              "",
+              f"- Terminal stage: `{result.get(\"terminal_status\", \"blocked\")}`",
+              f"- Candidates: {result[\"candidate_count\"]}",
+              f"- Ranked: {len(result.get(\"ranked_leads\", []))}",
+              f"- Human review required: {str(result[\"human_review_required\"]).lower()}",
+              f"- Personal data collection: `{result[\"personal_data_collection\"]}`",
+              "",
+              "| Rank | Company | Category | Location | Confidence |",
+              "|---:|---|---|---|---:|",
+          ]
+          for lead in result.get("ranked_leads", [])[:10]:
+              lines.append(
+                  "| {rank} | {company_name} | {business_category} | {location} | {confidence_score:.2f} |".format(
+                      **lead
+                  )
+              )
+          Path(summary).write_text("\n".join(lines) + "\n", encoding="utf-8")
+          '
 
       - name: Run discovery inference smoke test
         run: |

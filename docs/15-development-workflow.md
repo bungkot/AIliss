@@ -30,3 +30,17 @@ Each change states requirements, affected domain/contracts, threat/cost impact, 
 - Security review signs off on policy/browser/provider/auth changes.
 - Architecture decisions record major technology or boundary changes.
 - Evaluation and cost thresholds are not silently relaxed.
+
+## GitHub Actions discovery scenario
+
+The `ollama-discovery` workflow runs the policy-gated input-to-output fixture scenario
+from campaign registration through source policy, fixture extraction, candidate
+generation, deterministic ranking, and Ollama recommendation. It accepts a discovery
+prompt and target count through `workflow_dispatch`; scheduled runs use the 200-lead
+fixture default.
+
+The workflow only processes the approved `example.com` fixture source. It does not
+crawl the public internet, collect personal data, promote candidates, or export data
+outside the GitHub Actions artifact. Candidate JSON includes provenance, rank,
+human-review status, and agent terminal status; every result remains candidate-level
+until a human authorizes promotion.
