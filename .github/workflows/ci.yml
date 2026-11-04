@@ -58,7 +58,11 @@ jobs:
       - name: Validate Mermaid diagrams
         run: |
           find docs -name '*.md' -print0 | while IFS= read -r -d '' file; do
-            mmdc -i "$file" -o "/dev/null" || exit 1
+            if grep -Eq '^```mermaid[[:space:]]*$' "$file"; then
+              output="${RUNNER_TEMP}/$(echo "$file" | tr '/:' '__').svg"
+              mmdc -i "$file" -o "$output" || exit 1
+              rm -f "$output"
+            fi
           done
 
   docker-smoke:

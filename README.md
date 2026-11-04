@@ -1,5 +1,7 @@
 # AI Lead Intelligence and Scraping System
 
+[![Python, documentation, and Docker validation](https://github.com/bungkot/AIliss/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/bungkot/AIliss/actions/workflows/ci.yml)
+
 A repository for designing and eventually implementing an AI-assisted lead discovery, extraction, qualification, enrichment, and governance platform. This repository currently contains documentation and the GitHub Copilot development harness only; it deliberately has no application implementation or dependencies.
 
 ## Project purpose
