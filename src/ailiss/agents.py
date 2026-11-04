@@ -1,5 +1,6 @@
 import json
 import time
+import urllib.error
 import urllib.request
 from collections.abc import Callable, Mapping
 from typing import Any, TypedDict
@@ -43,6 +44,10 @@ class ProviderAdapter:
         raise NotImplementedError
 
 
+class ProviderUnavailableError(RuntimeError):
+    pass
+
+
 class MockProvider(ProviderAdapter):
     def generate(self, request: ProviderRequest) -> ProviderResponse:
         text = (
@@ -58,9 +63,10 @@ class MockProvider(ProviderAdapter):
 
 
 class OllamaProvider(ProviderAdapter):
-    def __init__(self, base_url: str, timeout_seconds: float = 10.0):
+    def __init__(self, base_url: str, timeout_seconds: float = 10.0, max_attempts: int = 2):
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
+        self.max_attempts = min(max(max_attempts, 1), 3)
 
     def generate(self, request: ProviderRequest) -> ProviderResponse:
         payload = json.dumps(
@@ -79,9 +85,27 @@ class OllamaProvider(ProviderAdapter):
             method="POST",
         )
         timeout_seconds = min(request.timeout_seconds, self.timeout_seconds)
-        with urllib.request.urlopen(req, timeout=timeout_seconds) as response:
-            result = json.loads(response.read().decode("utf-8"))
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                with urllib.request.urlopen(req, timeout=timeout_seconds) as response:
+                    result = json.loads(response.read().decode("utf-8"))
+                break
+            except (
+                TimeoutError,
+                urllib.error.URLError,
+                urllib.error.HTTPError,
+                json.JSONDecodeError,
+            ) as exc:
+                if attempt == self.max_attempts:
+                    raise ProviderUnavailableError(
+                        f"Ollama provider unavailable after {attempt} attempts"
+                    ) from exc
+                time.sleep(min(attempt, 2))
+        else:
+            raise ProviderUnavailableError("Ollama provider returned no response")
         text = str(result.get("response", ""))
+        if not text.strip():
+            raise ProviderUnavailableError("Ollama provider returned an empty response")
         tokens = int(result.get("eval_count", len(text.split())))
         return ProviderResponse(
             text=text,
@@ -182,14 +206,21 @@ def bounded_graph(
 
     def evaluate(state: AgentState) -> AgentState:
         state = increment(state)
-        response = provider.generate(
-            ProviderRequest(
-                prompt=state["prompt"],
-                model=state.get("model", "qwen3:0.6b"),
-                max_tokens=min(budget.max_tokens, 1024),
-                timeout_seconds=min(budget.max_wall_seconds, 60.0),
+        try:
+            response = provider.generate(
+                ProviderRequest(
+                    prompt=state["prompt"],
+                    model=state.get("model", "qwen3:0.6b"),
+                    max_tokens=min(budget.max_tokens, 1024),
+                    timeout_seconds=min(budget.max_wall_seconds, 60.0),
+                )
             )
-        )
+        except ProviderUnavailableError:
+            state["terminal_status"] = "retryable"
+            state["recommendation"] = (
+                "Model provider unavailable; retry the agent run after dependency recovery"
+            )
+            return state
         state["recommendation"] = response.text
         state["tokens"] = state.get("tokens", 0) + response.tokens
         state["bytes_used"] = state.get("bytes_used", 0) + response.bytes_used
@@ -218,7 +249,8 @@ def bounded_graph(
         return state
 
     def escalate(state: AgentState) -> AgentState:
-        state["recommendation"] = "Escalated for deterministic policy and human review"
+        if not state.get("recommendation"):
+            state["recommendation"] = "Escalated for deterministic policy and human review"
         return state
 
     workflow.add_node("plan", plan)

@@ -64,6 +64,11 @@ jobs:
         run: |
           ollama pull qwen3:0.6b
           ollama list | grep "^qwen3:0.6b[[:space:]]"
+          curl --fail --silent \
+            http://127.0.0.1:11434/api/generate \
+            -H "Content-Type: application/json" \
+            -d '{"model":"qwen3:0.6b","prompt":"Reply with healthy.","stream":false,"think":false,"options":{"temperature":0,"num_predict":16}}' \
+            > "$RUNNER_TEMP/ollama-warmup.json"
 
       - name: Run deterministic full suite
         run: python -m pytest tests -q
@@ -71,7 +76,8 @@ jobs:
       - name: Run API discovery and Ollama integration smoke
         env:
           AILISS_LIVE_OLLAMA: "1"
-          AILISS_OLLAMA_TIMEOUT_SECONDS: "30"
+          AILISS_OLLAMA_TIMEOUT_SECONDS: "120"
+          AILISS_AGENT_MAX_WALL_SECONDS: "120"
           AILISS_DISCOVERY_OUTPUT: ${{ runner.temp }}/wedding-leads.json
           AILISS_DISCOVERY_PROMPT: ${{ inputs.discovery_prompt || 'Build 200 candidate customer leads for Indonesian wedding vendors. Categories include wedding organizers, photographers, videographers, content creators, bridal studios, and digital invitation vendors. Each candidate must have at least one business contact.' }}
           AILISS_DISCOVERY_TARGET_COUNT: ${{ inputs.target_count || '200' }}

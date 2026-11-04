@@ -5,6 +5,7 @@ from ailiss.agents import (
     MockProvider,
     OllamaProvider,
     ProviderRequest,
+    ProviderUnavailableError,
     ToolGateway,
     ToolOutcome,
     run_bounded_agent,
@@ -109,6 +110,58 @@ def test_ollama_provider_contract_is_typed(monkeypatch):
     assert captured["url"].endswith("/api/generate")
     assert response.model == "qwen3:0.6b"
     assert response.tokens == 3
+
+
+def test_ollama_provider_timeout_is_retryable(monkeypatch):
+    attempts = {"count": 0}
+
+    def urlopen(request, timeout):
+        attempts["count"] += 1
+        raise TimeoutError("provider timed out")
+
+    monkeypatch.setattr("urllib.request.urlopen", urlopen)
+    monkeypatch.setattr("time.sleep", lambda seconds: None)
+    provider = OllamaProvider(
+        "http://127.0.0.1:11434",
+        timeout_seconds=4.0,
+        max_attempts=2,
+    )
+
+    try:
+        provider.generate(
+            ProviderRequest(prompt="test", model="qwen3:0.6b", timeout_seconds=4.0)
+        )
+        raise AssertionError("ProviderUnavailableError was not raised")
+    except ProviderUnavailableError:
+        pass
+
+    assert attempts["count"] == 2
+
+
+def test_agent_maps_provider_unavailable_to_retryable():
+    class UnavailableProvider:
+        def generate(self, request):
+            raise ProviderUnavailableError("dependency unavailable")
+
+    gateway = ToolGateway(
+        {
+            "campaign.get": lambda **kwargs: ToolOutcome(
+                code="ok",
+                data={"campaign_id": kwargs["campaign_id"]},
+            )
+        }
+    )
+    result = run_bounded_agent(
+        campaign_id="campaign-1",
+        prompt="short prompt",
+        correlation_id="test-correlation",
+        gateway=gateway,
+        provider=UnavailableProvider(),
+        budget=Budget(),
+    )
+
+    assert result["terminal_status"] == "retryable"
+    assert "retry" in result["recommendation"].lower()
 
 
 def test_phase3_offline_evaluation_gates():
