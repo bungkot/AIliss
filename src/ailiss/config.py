@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     celery_default_concurrency: int = 4
     celery_browser_concurrency: int = 2
     celery_model_concurrency: int = 2
+    expansion_require_fixture_evidence: bool = True
+    expansion_require_evaluation_evidence: bool = True
+    expansion_max_rollout_percent: int = 100
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

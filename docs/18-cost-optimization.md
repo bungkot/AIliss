@@ -30,3 +30,8 @@ Limit model calls by token/spend ceilings and evidence thresholds. Browser runs 
 ## Cost quality gate
 
 A feature needs cost/latency estimates and measurements. A model/provider change requires offline regression comparison, thresholds, fallback, and spend ceiling.
+
+Phase 5 adds campaign-scoped resource budgets for default, browser, and model
+worker pools. Expansion releases remain at zero rollout until approval evidence
+is registered; staged percentages are only operational rollout metadata, not an
+authorization to bypass source, field, extraction, or model policy gates.

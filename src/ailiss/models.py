@@ -234,3 +234,53 @@ class RetentionPolicy(SQLModel, table=True):
     legal_hold: bool = Field(default=False)
     created_at: datetime = Field(default_factory=utc_now, nullable=False)
     updated_at: datetime = Field(default_factory=utc_now, nullable=False)
+
+
+class ExpansionStatus(StrEnum):
+    DRAFT = "draft"
+    APPROVED = "approved"
+    STAGED = "staged"
+    PAUSED = "paused"
+    DISABLED = "disabled"
+    ROLLED_BACK = "rolled_back"
+
+
+class ExpansionType(StrEnum):
+    SOURCE = "source"
+    FIELD = "field"
+    PROVIDER = "provider"
+    BROWSER = "browser"
+    PARSER = "parser"
+    STORAGE = "storage"
+    QUEUE = "queue"
+
+
+class ExpansionRelease(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid_pk, primary_key=True)
+    campaign_id: uuid.UUID = Field(foreign_key="campaign.id", index=True)
+    target_type: ExpansionType = Field(index=True)
+    target_name: str = Field(min_length=1, max_length=128, index=True)
+    config_hash: str = Field(min_length=64, max_length=64)
+    policy_evidence_hash: str = Field(min_length=64, max_length=64)
+    fixture_evidence_hash: str = Field(min_length=64, max_length=64)
+    evaluation_evidence_hash: str = Field(min_length=64, max_length=64)
+    rollout_percent: int = Field(default=0, ge=0, le=100)
+    status: ExpansionStatus = Field(default=ExpansionStatus.DRAFT, index=True)
+    approved_by: str | None = Field(default=None, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+    created_at: datetime = Field(default_factory=utc_now, nullable=False)
+    updated_at: datetime = Field(default_factory=utc_now, nullable=False)
+
+
+class ResourceBudget(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid_pk, primary_key=True)
+    campaign_id: uuid.UUID = Field(foreign_key="campaign.id", index=True)
+    worker_pool: str = Field(min_length=1, max_length=32, index=True)
+    max_concurrency: int = Field(default=1, ge=1, le=100)
+    max_requests_per_second: int = Field(default=1, ge=1, le=1000)
+    max_bytes: int = Field(default=100_000, ge=1, le=100_000_000)
+    max_tokens: int = Field(default=4000, ge=1, le=1_000_000)
+    max_spend_usd: float = Field(default=0.25, ge=0.0, le=100000.0)
+    enabled: bool = Field(default=True)
+    created_at: datetime = Field(default_factory=utc_now, nullable=False)
+    updated_at: datetime = Field(default_factory=utc_now, nullable=False)

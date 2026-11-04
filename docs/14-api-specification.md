@@ -49,6 +49,19 @@ Phase 4 operation contracts:
 | POST /v1/leads/{lead_id}/archive | Archive a lead when deletion policy permits it |
 | POST /v1/campaigns/{campaign_id}/purge | Purge eligible archived leads with explicit confirmation |
 
+Phase 5 expansion and optimization contracts:
+
+| Method and path | Purpose |
+|---|---|
+| POST /v1/expansion-releases | Register a policy-evidenced expansion release at zero rollout |
+| GET /v1/expansion-releases/{release_id} | Retrieve release status and rollout metadata |
+| POST /v1/expansion-releases/{release_id}/stage | Increase rollout after approved evidence gates |
+| POST /v1/expansion-releases/{release_id}/pause | Pause an active staged release |
+| POST /v1/expansion-releases/{release_id}/resume | Resume a paused staged release |
+| POST /v1/expansion-releases/{release_id}/disable | Disable a release immediately |
+| POST /v1/expansion-releases/{release_id}/rollback | Roll back rollout and preserve audit evidence |
+| POST /v1/resource-budgets | Create or update campaign worker concurrency, rate, byte, token, and spend ceilings |
+
 ```mermaid
 sequenceDiagram
   participant Client

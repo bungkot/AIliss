@@ -2,7 +2,7 @@
 
 ## Status
 
-The repository is specification-ready and the Phase 1 local RND foundation plus the deterministic Phase 2 contracts are implemented. This status does not authorize live scraping, personal-data collection, external writes, or production handling.
+The repository is specification-ready, with the Phase 1 local RND foundation, deterministic Phase 2 contracts, bounded Phase 3 orchestration, Phase 4 operations, and Phase 5 controlled-expansion contracts implemented. This status does not authorize live scraping, personal-data collection, external writes, or production handling.
 
 Phase 1 provides the FastAPI foundation, file-backed SQLModel/SQLite persistence, Alembic core migration, campaign/source-policy/source/extraction-run contracts, approval audit, and local acceptance tests. Browser automation, MCP tools, LangGraph orchestration, hosted production persistence, queue services, live discovery, and personal-field collection remain outside Phase 1.
 
@@ -28,6 +28,17 @@ Redis/Celery worker profiles, and PostgreSQL migration smoke coverage. Personal
 data collection, live scraping, external writes, production credentials, legal
 approval, production queue rollout, and production storage remain disabled until
 their security, policy, and release gates are satisfied.
+
+Phase 5 core contracts now add migration 005, campaign-scoped expansion releases,
+source/public-field policy checks, fixture/evaluation evidence hashes, staged
+rollout and rollback controls, and per-worker resource budgets. Personal-field
+expansion, live scraping, source adapter activation, model expansion, external
+storage/queue switching, production credentials, and legal release remain
+authorization gates rather than implemented production behavior.
+
+Verification as of 2026-11-04: Ruff passes; the full Python suite passes with
+40 tests; documentation validation and `git diff --check` pass; the migration
+test upgrades migration 005, downgrades to 004, and re-upgrades cleanly on SQLite.
 
 ## Implementation gate
 

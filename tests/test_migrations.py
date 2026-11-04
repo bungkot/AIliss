@@ -26,17 +26,17 @@ def test_postgresql_engine_uses_bounded_pool_settings():
     assert engine.pool._max_overflow == 10
 
 
-def test_phase4_migration_rolls_back_and_upgrades(tmp_path: Path):
+def test_phase5_migration_rolls_back_and_upgrades(tmp_path: Path):
     root = Path(__file__).resolve().parents[1]
     migration_file = (tmp_path / "migration.db").resolve().as_posix()
     database_url = f"sqlite:///{migration_file}"
 
     run_alembic(root, database_url, "upgrade", "head")
     current = run_alembic(root, database_url, "current")
-    assert "004_phase4" in current.stdout
+    assert "005_phase5" in current.stdout
 
-    run_alembic(root, database_url, "downgrade", "003_phase3")
+    run_alembic(root, database_url, "downgrade", "004_phase4")
     current = run_alembic(root, database_url, "current")
-    assert "003_phase3" in current.stdout
+    assert "004_phase4" in current.stdout
 
     run_alembic(root, database_url, "upgrade", "head")

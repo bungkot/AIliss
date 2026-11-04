@@ -17,12 +17,18 @@ from ailiss.agents import (
 )
 from ailiss.config import get_settings
 from ailiss.db import create_db_and_tables, database_is_ready, get_session
+from ailiss.expansion import (
+    create_expansion_release,
+    transition_expansion_release,
+    upsert_resource_budget,
+)
 from ailiss.metrics import increment, render_metrics
 from ailiss.models import (
     AgentRun,
     AgentTerminalStatus,
     Campaign,
     DurableOperation,
+    ExpansionRelease,
     ExtractionRun,
     Lead,
     RetentionPolicy,
@@ -45,11 +51,16 @@ from ailiss.schemas import (
     CampaignResponse,
     DurableOperationCreate,
     DurableOperationResponse,
+    ExpansionActionCreate,
+    ExpansionReleaseCreate,
+    ExpansionReleaseResponse,
     ExtractionRunCreate,
     ExtractionRunResponse,
     LeadResponse,
     MergeDecisionCreate,
     PrivacyActionCreate,
+    ResourceBudgetCreate,
+    ResourceBudgetResponse,
     RetentionPolicyCreate,
     RetentionPolicyResponse,
     SourceCreate,
@@ -106,6 +117,12 @@ async def value_error_handler(request: Request, exc: ValueError):
         "campaign_paused": status.HTTP_409_CONFLICT,
         "idempotency_conflict": status.HTTP_409_CONFLICT,
         "source_policy_exists": status.HTTP_409_CONFLICT,
+        "approval_required": status.HTTP_403_FORBIDDEN,
+        "expansion_release_exists": status.HTTP_409_CONFLICT,
+        "expansion_must_start_at_zero": status.HTTP_400_BAD_REQUEST,
+        "invalid_expansion_transition": status.HTTP_409_CONFLICT,
+        "invalid_expansion_action": status.HTTP_400_BAD_REQUEST,
+        "rollout_percent_required": status.HTTP_400_BAD_REQUEST,
     }
     code = str(exc)
     return JSONResponse(
@@ -293,6 +310,104 @@ def get_retention_policy(
     if policy is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="retention_policy_not_found")
     return policy
+
+
+@app.post(
+    "/v1/expansion-releases",
+    response_model=ExpansionReleaseResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def post_expansion_release(
+    payload: ExpansionReleaseCreate,
+    correlation: str = Depends(correlation_id),
+    session: Session = Depends(get_session),
+):
+    try:
+        release = create_expansion_release(
+            session,
+            campaign_id=payload.campaign_id,
+            target_type=payload.target_type,
+            target_name=payload.target_name,
+            config_hash=payload.config_hash,
+            policy_evidence_hash=payload.policy_evidence_hash,
+            fixture_evidence_hash=payload.fixture_evidence_hash,
+            evaluation_evidence_hash=payload.evaluation_evidence_hash,
+            rollout_percent=payload.rollout_percent,
+            reason=payload.reason,
+            approved_by=payload.approved_by,
+            correlation_id=correlation,
+        )
+    except LookupError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return release
+
+
+@app.get(
+    "/v1/expansion-releases/{release_id}",
+    response_model=ExpansionReleaseResponse,
+)
+def get_expansion_release(
+    release_id: str,
+    session: Session = Depends(get_session),
+):
+    release = session.get(ExpansionRelease, UUID(release_id))
+    if release is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="expansion_release_not_found")
+    return release
+
+
+@app.post(
+    "/v1/expansion-releases/{release_id}/{action}",
+    response_model=ExpansionReleaseResponse,
+)
+def post_expansion_action(
+    release_id: str,
+    action: str,
+    payload: ExpansionActionCreate,
+    correlation: str = Depends(correlation_id),
+    session: Session = Depends(get_session),
+):
+    if action not in {"stage", "pause", "resume", "disable", "rollback"}:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="invalid_expansion_action")
+    try:
+        return transition_expansion_release(
+            session,
+            UUID(release_id),
+            action=action,
+            actor=payload.actor,
+            reason=payload.reason,
+            rollout_percent=payload.rollout_percent,
+            correlation_id=correlation,
+        )
+    except LookupError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@app.post(
+    "/v1/resource-budgets",
+    response_model=ResourceBudgetResponse,
+)
+def post_resource_budget(
+    payload: ResourceBudgetCreate,
+    correlation: str = Depends(correlation_id),
+    session: Session = Depends(get_session),
+):
+    try:
+        return upsert_resource_budget(
+            session,
+            campaign_id=payload.campaign_id,
+            worker_pool=payload.worker_pool,
+            max_concurrency=payload.max_concurrency,
+            max_requests_per_second=payload.max_requests_per_second,
+            max_bytes=payload.max_bytes,
+            max_tokens=payload.max_tokens,
+            max_spend_usd=payload.max_spend_usd,
+            enabled=payload.enabled,
+            actor="cost_owner",
+            correlation_id=correlation,
+        )
+    except LookupError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 
 @app.post("/v1/agent-runs", response_model=AgentRunResponse, status_code=status.HTTP_202_ACCEPTED)

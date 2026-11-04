@@ -192,6 +192,13 @@ Harden production behavior, operating controls, deployment, security, and recove
 
 ## Phase 5
 
+Phase 5 implementation is complete at the executable-contract stage. Implemented
+contracts provide policy-evidenced source and public-field expansion releases,
+approved-to-staged rollout, pause/resume/disable/rollback actions, and campaign
+worker resource budgets. Live source discovery, personal fields, external writes,
+and production adapter switching remain disabled until their independent
+authorization and regression gates pass.
+
 Expand only source and enrichment coverage supported by policy and measured evidence.
 
 ### Step 5.1: Controlled expansion

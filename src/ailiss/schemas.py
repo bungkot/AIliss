@@ -172,3 +172,64 @@ class DurableOperationCreate(BaseModel):
     idempotency_key: str = Field(min_length=1, max_length=128)
     payload: dict[str, Any] = Field(default_factory=dict, max_length=1000)
     max_attempts: int = Field(default=3, ge=1, le=10)
+
+
+class ExpansionReleaseCreate(BaseModel):
+    campaign_id: UUID
+    target_type: str = Field(
+        pattern=r"^(source|field|provider|browser|parser|storage|queue)$"
+    )
+    target_name: str = Field(min_length=1, max_length=128)
+    config_hash: str = Field(min_length=64, max_length=64, pattern=r"^[a-fA-F0-9]{64}$")
+    policy_evidence_hash: str = Field(
+        min_length=64, max_length=64, pattern=r"^[a-fA-F0-9]{64}$"
+    )
+    fixture_evidence_hash: str = Field(
+        min_length=64, max_length=64, pattern=r"^[a-fA-F0-9]{64}$"
+    )
+    evaluation_evidence_hash: str = Field(
+        min_length=64, max_length=64, pattern=r"^[a-fA-F0-9]{64}$"
+    )
+    rollout_percent: int = Field(default=0, ge=0, le=100)
+    reason: str = Field(min_length=1, max_length=2000)
+    approved_by: str | None = Field(default=None, max_length=200)
+
+
+class ExpansionReleaseResponse(BaseModel):
+    id: UUID
+    campaign_id: UUID
+    target_type: str
+    target_name: str
+    rollout_percent: int
+    status: str
+    reason: str
+    approved_by: str | None
+
+
+class ExpansionActionCreate(BaseModel):
+    actor: str = Field(min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+    rollout_percent: int | None = Field(default=None, ge=0, le=100)
+
+
+class ResourceBudgetCreate(BaseModel):
+    campaign_id: UUID
+    worker_pool: str = Field(pattern=r"^(default|browser|model)$")
+    max_concurrency: int = Field(default=1, ge=1, le=100)
+    max_requests_per_second: int = Field(default=1, ge=1, le=1000)
+    max_bytes: int = Field(default=100_000, ge=1, le=100_000_000)
+    max_tokens: int = Field(default=4000, ge=1, le=1_000_000)
+    max_spend_usd: float = Field(default=0.25, ge=0.0, le=100000.0)
+    enabled: bool = True
+
+
+class ResourceBudgetResponse(BaseModel):
+    id: UUID
+    campaign_id: UUID
+    worker_pool: str
+    max_concurrency: int
+    max_requests_per_second: int
+    max_bytes: int
+    max_tokens: int
+    max_spend_usd: float
+    enabled: bool
