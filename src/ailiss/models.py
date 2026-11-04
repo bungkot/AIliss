@@ -1,6 +1,6 @@
 import uuid
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 
 from sqlmodel import Field, SQLModel
 
@@ -13,7 +13,7 @@ def uuid_pk() -> uuid.UUID:
     return uuid.uuid4()
 
 
-class CampaignStatus(str, Enum):
+class CampaignStatus(StrEnum):
     ACTIVE = "active"
     PAUSED = "paused"
     CLOSED = "closed"
@@ -36,7 +36,7 @@ class SourcePolicy(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utc_now, nullable=False)
 
 
-class SourceStatus(str, Enum):
+class SourceStatus(StrEnum):
     DISCOVERED = "discovered"
     APPROVED = "approved"
     DENIED = "denied"
@@ -51,7 +51,7 @@ class Source(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utc_now, nullable=False)
 
 
-class RunStatus(str, Enum):
+class RunStatus(StrEnum):
     QUEUED = "queued"
     RUNNING = "running"
     COMPLETE = "complete"
@@ -70,7 +70,7 @@ class ExtractionRun(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utc_now, nullable=False)
 
 
-class EvidenceStatus(str, Enum):
+class EvidenceStatus(StrEnum):
     CANDIDATE = "candidate"
     VERIFIED = "verified"
     CONFLICT = "conflict"
@@ -90,7 +90,7 @@ class Evidence(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utc_now, nullable=False)
 
 
-class LeadStatus(str, Enum):
+class LeadStatus(StrEnum):
     CANDIDATE = "candidate"
     REVIEWED = "reviewed"
     RETAINED = "retained"
@@ -168,7 +168,7 @@ class AuditEvent(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utc_now, nullable=False)
 
 
-class AgentTerminalStatus(str, Enum):
+class AgentTerminalStatus(StrEnum):
     COMPLETE = "complete"
     PARTIAL = "partial"
     BLOCKED = "blocked"

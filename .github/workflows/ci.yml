@@ -63,7 +63,7 @@ jobs:
           exit 1
       - name: Verify migration and API contract
         run: |
-          docker compose exec -T api python -m alembic current | grep "002_phase2 (head)"
+          docker compose exec -T api python -m alembic current | grep "003_phase3 (head)"
           curl --fail --silent http://127.0.0.1:18000/health
       - name: Show container resources
         run: docker stats --no-stream
