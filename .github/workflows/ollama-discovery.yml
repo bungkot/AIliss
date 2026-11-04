@@ -96,7 +96,7 @@ jobs:
         env:
           AILISS_DISCOVERY_OUTPUT: ${{ runner.temp }}/wedding-leads.json
         run: |
-          python -c '
+          python <<'PY'
           import json
           import os
           from pathlib import Path
@@ -113,11 +113,11 @@ jobs:
           lines = [
               "## Discovery workflow",
               "",
-              f"- Terminal stage: `{result.get(\"terminal_status\", \"blocked\")}`",
-              f"- Candidates: {result[\"candidate_count\"]}",
-              f"- Ranked: {len(result.get(\"ranked_leads\", []))}",
-              f"- Human review required: {str(result[\"human_review_required\"]).lower()}",
-              f"- Personal data collection: `{result[\"personal_data_collection\"]}`",
+              "- Terminal stage: `{}`".format(result.get("terminal_status", "blocked")),
+              "- Candidates: {}".format(result["candidate_count"]),
+              "- Ranked: {}".format(len(result.get("ranked_leads", []))),
+              "- Human review required: {}".format(str(result["human_review_required"]).lower()),
+              "- Personal data collection: `{}`".format(result["personal_data_collection"]),
               "",
               "| Rank | Company | Category | Location | Confidence |",
               "|---:|---|---|---|---:|",
@@ -129,7 +129,7 @@ jobs:
                   )
               )
           Path(summary).write_text("\n".join(lines) + "\n", encoding="utf-8")
-          '
+          PY
 
       - name: Run discovery inference smoke test
         run: |
