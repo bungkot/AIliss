@@ -1,0 +1,144 @@
+import uuid
+from datetime import UTC, datetime
+from enum import Enum
+
+from sqlmodel import Field, SQLModel
+
+
+def utc_now() -> datetime:
+    return datetime.now(UTC)
+
+
+def uuid_pk() -> uuid.UUID:
+    return uuid.uuid4()
+
+
+class CampaignStatus(str, Enum):
+    ACTIVE = "active"
+    PAUSED = "paused"
+    CLOSED = "closed"
+
+
+class Campaign(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid_pk, primary_key=True)
+    name: str = Field(min_length=1, max_length=200)
+    discovery_prompt: str = Field(min_length=1, max_length=4000)
+    status: CampaignStatus = Field(default=CampaignStatus.ACTIVE)
+    created_at: datetime = Field(default_factory=utc_now, nullable=False)
+
+
+class SourcePolicy(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid_pk, primary_key=True)
+    campaign_id: uuid.UUID = Field(foreign_key="campaign.id", index=True)
+    allowed_domains: str = Field(default="", max_length=4000)
+    allowed_fields: str = Field(default="", max_length=4000)
+    require_personal_data_review: bool = True
+    created_at: datetime = Field(default_factory=utc_now, nullable=False)
+
+
+class SourceStatus(str, Enum):
+    DISCOVERED = "discovered"
+    APPROVED = "approved"
+    DENIED = "denied"
+
+
+class Source(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid_pk, primary_key=True)
+    campaign_id: uuid.UUID = Field(foreign_key="campaign.id", index=True)
+    url: str = Field(min_length=1, max_length=2048)
+    status: SourceStatus = Field(default=SourceStatus.DISCOVERED)
+    access_basis: str | None = Field(default=None, max_length=500)
+    created_at: datetime = Field(default_factory=utc_now, nullable=False)
+
+
+class RunStatus(str, Enum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETE = "complete"
+    FAILED = "failed"
+    BLOCKED = "blocked"
+    POLICY_REJECTED = "policy_rejected"
+
+
+class ExtractionRun(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid_pk, primary_key=True)
+    campaign_id: uuid.UUID = Field(foreign_key="campaign.id", index=True)
+    source_id: uuid.UUID = Field(foreign_key="source.id", index=True)
+    config_hash: str = Field(min_length=1, max_length=128)
+    idempotency_key: str = Field(min_length=1, max_length=128, index=True)
+    status: RunStatus = Field(default=RunStatus.QUEUED)
+    created_at: datetime = Field(default_factory=utc_now, nullable=False)
+
+
+class EvidenceStatus(str, Enum):
+    CANDIDATE = "candidate"
+    VERIFIED = "verified"
+    CONFLICT = "conflict"
+    QUARANTINED = "quarantined"
+
+
+class Evidence(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid_pk, primary_key=True)
+    run_id: uuid.UUID = Field(foreign_key="extractionrun.id", index=True)
+    value: str = Field(max_length=8000)
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    verification_status: EvidenceStatus = Field(default=EvidenceStatus.CANDIDATE)
+    source_url: str = Field(max_length=2048)
+    artifact_hash: str = Field(min_length=1, max_length=128)
+    extractor_version: str = Field(min_length=1, max_length=128)
+    normalization_version: str = Field(min_length=1, max_length=128)
+    created_at: datetime = Field(default_factory=utc_now, nullable=False)
+
+
+class LeadStatus(str, Enum):
+    CANDIDATE = "candidate"
+    REVIEWED = "reviewed"
+    RETAINED = "retained"
+    QUARANTINED = "quarantined"
+    REJECTED = "rejected"
+    ARCHIVED = "archived"
+
+
+class Company(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid_pk, primary_key=True)
+    name: str = Field(min_length=1, max_length=500)
+    domain: str | None = Field(default=None, max_length=253, index=True)
+    status: str = Field(default="candidate", max_length=32)
+    created_at: datetime = Field(default_factory=utc_now, nullable=False)
+
+
+class Contact(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid_pk, primary_key=True)
+    company_id: uuid.UUID | None = Field(default=None, foreign_key="company.id", index=True)
+    display_name: str = Field(min_length=1, max_length=500)
+    role: str | None = Field(default=None, max_length=200)
+    purpose: str | None = Field(default=None, max_length=500)
+    retention_class: str = Field(default="standard", max_length=32)
+    created_at: datetime = Field(default_factory=utc_now, nullable=False)
+
+
+class Lead(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid_pk, primary_key=True)
+    campaign_id: uuid.UUID = Field(foreign_key="campaign.id", index=True)
+    status: LeadStatus = Field(default=LeadStatus.CANDIDATE)
+    created_at: datetime = Field(default_factory=utc_now, nullable=False)
+
+
+class Approval(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid_pk, primary_key=True)
+    lead_id: uuid.UUID = Field(foreign_key="lead.id", index=True)
+    actor: str = Field(min_length=1, max_length=200)
+    decision: str = Field(min_length=1, max_length=32)
+    reason: str = Field(min_length=1, max_length=2000)
+    created_at: datetime = Field(default_factory=utc_now, nullable=False)
+
+
+class AuditEvent(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid_pk, primary_key=True)
+    actor: str = Field(max_length=200)
+    action: str = Field(min_length=1, max_length=100)
+    entity_type: str = Field(min_length=1, max_length=100)
+    entity_id: str = Field(min_length=1, max_length=128)
+    correlation_id: str = Field(min_length=1, max_length=128)
+    reason: str | None = Field(default=None, max_length=2000)
+    created_at: datetime = Field(default_factory=utc_now, nullable=False)

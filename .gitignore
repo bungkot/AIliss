@@ -20,6 +20,8 @@ htmlcov/
 coverage.xml
 test-results/
 playwright-report/
+data/*.db
+data/*.sqlite*
 
 # Playwright and browser artifacts
 playwright/.cache/

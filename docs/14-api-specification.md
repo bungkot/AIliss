@@ -15,6 +15,15 @@ FastAPI exposes versioned REST JSON endpoints. IDs are UUIDs or ULIDs. Mutations
 | POST /v1/campaigns/{campaign_id}/pause | Pause queued work |
 | POST /v1/leads/{lead_id}/approve | Record authorized promotion approval |
 
+Phase 1 also exposes campaign source-policy and source registration contracts:
+
+| Method and path | Purpose |
+|---|---|
+| POST /v1/campaigns | Create a campaign |
+| POST /v1/campaigns/{campaign_id}/pause | Pause campaign work |
+| POST /v1/campaigns/{campaign_id}/source-policy | Create the campaign source policy |
+| POST /v1/campaigns/{campaign_id}/sources | Register a policy-approved source |
+
 ```mermaid
 sequenceDiagram
   participant Client

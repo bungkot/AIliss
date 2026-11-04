@@ -55,3 +55,30 @@ Run:
 ```bash
 python scripts/validate_docs.py
 ```
+
+## Phase 1 local RND
+
+Create a virtual environment and install the application plus development dependencies:
+
+```powershell
+py -3.12 -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
+```
+
+Run migrations and the API without Docker:
+
+```powershell
+python -m alembic upgrade head
+python -m uvicorn ailiss.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+Run the local acceptance suite:
+
+```powershell
+python -m pytest
+python scripts\validate_docs.py
+```
+
+Docker containers must remain stopped for normal Phase 1 work. Start a container only for a
+later slice that explicitly validates an optional infrastructure or browser contract.

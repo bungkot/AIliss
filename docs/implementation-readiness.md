@@ -2,7 +2,9 @@
 
 ## Status
 
-The repository is specification-ready for the first implementation slice; application implementation is not yet started. This status does not authorize live scraping, personal-data collection, external writes, or production handling.
+The repository is specification-ready and Phase 1 local RND foundation is implemented. This status does not authorize live scraping, personal-data collection, external writes, or production handling.
+
+Phase 1 provides the FastAPI foundation, file-backed SQLModel/SQLite persistence, Alembic core migration, campaign/source-policy/source/extraction-run contracts, approval audit, and local acceptance tests. Browser automation, MCP tools, LangGraph orchestration, hosted production persistence, queue services, live discovery, and personal-field collection remain outside Phase 1.
 
 ## Implementation gate
 
