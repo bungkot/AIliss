@@ -21,6 +21,14 @@ class Settings(BaseSettings):
     agent_max_wall_seconds: float = 30.0
     agent_max_bytes: int = 100_000
     agent_max_spend_usd: float = 0.25
+    redis_url: str = "redis://127.0.0.1:6379/0"
+    celery_broker_url: str | None = None
+    celery_result_backend: str | None = None
+    celery_task_time_limit_seconds: int = 300
+    celery_task_soft_time_limit_seconds: int = 270
+    celery_default_concurrency: int = 4
+    celery_browser_concurrency: int = 2
+    celery_model_concurrency: int = 2
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

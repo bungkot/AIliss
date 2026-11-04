@@ -4,8 +4,8 @@ from contextlib import asynccontextmanager
 from uuid import UUID, uuid4
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
-from fastapi.responses import JSONResponse
-from sqlmodel import Session
+from fastapi.responses import JSONResponse, PlainTextResponse
+from sqlmodel import Session, select
 
 from ailiss.agents import (
     Budget,
@@ -17,7 +17,23 @@ from ailiss.agents import (
 )
 from ailiss.config import get_settings
 from ailiss.db import create_db_and_tables, database_is_ready, get_session
-from ailiss.models import AgentRun, AgentTerminalStatus, Campaign, ExtractionRun, Lead
+from ailiss.metrics import increment, render_metrics
+from ailiss.models import (
+    AgentRun,
+    AgentTerminalStatus,
+    Campaign,
+    DurableOperation,
+    ExtractionRun,
+    Lead,
+    RetentionPolicy,
+)
+from ailiss.operations import (
+    archive_lead,
+    export_campaign,
+    purge_archived_leads,
+    register_durable_operation,
+    upsert_retention_policy,
+)
 from ailiss.pipeline import stage_fixture_artifact
 from ailiss.schemas import (
     AgentRunCreate,
@@ -27,10 +43,15 @@ from ailiss.schemas import (
     ArtifactResponse,
     CampaignCreate,
     CampaignResponse,
+    DurableOperationCreate,
+    DurableOperationResponse,
     ExtractionRunCreate,
     ExtractionRunResponse,
     LeadResponse,
     MergeDecisionCreate,
+    PrivacyActionCreate,
+    RetentionPolicyCreate,
+    RetentionPolicyResponse,
     SourceCreate,
     SourcePolicyCreate,
     SourcePolicyResponse,
@@ -65,10 +86,15 @@ def correlation_id(request: Request, x_correlation_id: str | None = Header(defau
 
 @app.middleware("http")
 async def add_correlation_header(request: Request, call_next):
-    response = await call_next(request)
     correlation = request.headers.get("x-correlation-id")
-    if correlation:
-        response.headers["x-correlation-id"] = correlation
+    if not correlation:
+        correlation = str(uuid4())
+    request.state.correlation_id = correlation
+    try:
+        response = await call_next(request)
+    finally:
+        increment("requests_total")
+    response.headers["x-correlation-id"] = correlation
     return response
 
 
@@ -101,6 +127,172 @@ def health():
             content={"status": "unhealthy", "environment": settings.environment},
         )
     return {"status": "healthy", "environment": settings.environment}
+
+
+@app.get("/health/live")
+def health_live():
+    return {"status": "alive", "environment": settings.environment}
+
+
+@app.get("/health/ready")
+def health_ready():
+    if not database_is_ready():
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"status": "not_ready", "environment": settings.environment},
+        )
+    return {"status": "ready", "environment": settings.environment}
+
+
+@app.get("/metrics", response_class=PlainTextResponse)
+def metrics():
+    return PlainTextResponse(render_metrics(), media_type="text/plain")
+
+
+@app.post(
+    "/v1/campaigns/{campaign_id}/retention-policy",
+    response_model=RetentionPolicyResponse,
+)
+def post_retention_policy(
+    campaign_id: str,
+    payload: RetentionPolicyCreate,
+    correlation: str = Depends(correlation_id),
+    session: Session = Depends(get_session),
+):
+    try:
+        policy = upsert_retention_policy(
+            session,
+            UUID(campaign_id),
+            public_business_days=payload.public_business_days,
+            personal_data_days=payload.personal_data_days,
+            export_enabled=payload.export_enabled,
+            deletion_enabled=payload.deletion_enabled,
+            legal_hold=payload.legal_hold,
+            actor="policy_owner",
+            correlation_id=correlation,
+        )
+    except LookupError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return policy
+
+
+@app.post("/v1/campaigns/{campaign_id}/export")
+def post_campaign_export(
+    campaign_id: str,
+    payload: PrivacyActionCreate,
+    correlation: str = Depends(correlation_id),
+    session: Session = Depends(get_session),
+):
+    try:
+        return export_campaign(
+            session,
+            UUID(campaign_id),
+            actor=payload.actor,
+            reason=payload.reason,
+            correlation_id=correlation,
+        )
+    except LookupError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+
+@app.post("/v1/leads/{lead_id}/archive", response_model=LeadResponse)
+def post_archive_lead(
+    lead_id: str,
+    payload: PrivacyActionCreate,
+    correlation: str = Depends(correlation_id),
+    session: Session = Depends(get_session),
+):
+    try:
+        lead = archive_lead(
+            session,
+            UUID(lead_id),
+            actor=payload.actor,
+            reason=payload.reason,
+            correlation_id=correlation,
+        )
+        return lead
+    except LookupError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+
+@app.post("/v1/campaigns/{campaign_id}/purge")
+def post_campaign_purge(
+    campaign_id: str,
+    payload: PrivacyActionCreate,
+    correlation: str = Depends(correlation_id),
+    session: Session = Depends(get_session),
+):
+    if payload.confirmation != "purge":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="confirmation_required")
+    try:
+        count = purge_archived_leads(
+            session,
+            UUID(campaign_id),
+            actor=payload.actor,
+            reason=payload.reason,
+            confirmation=payload.confirmation,
+            correlation_id=correlation,
+        )
+        return {"status": "complete", "purged_leads": count}
+    except LookupError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+
+@app.post("/v1/operations", response_model=DurableOperationResponse, status_code=202)
+def post_durable_operation(
+    payload: DurableOperationCreate,
+    correlation: str = Depends(correlation_id),
+    session: Session = Depends(get_session),
+):
+    if session.get(Campaign, payload.campaign_id) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="campaign_not_found")
+    try:
+        operation = register_durable_operation(
+            session,
+            campaign_id=payload.campaign_id,
+            task_name=payload.task_name,
+            worker_pool=payload.worker_pool,
+            idempotency_key=payload.idempotency_key,
+            payload=payload.payload,
+            correlation_id=correlation,
+            max_attempts=payload.max_attempts,
+        )
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    return operation
+
+
+@app.get("/v1/operations/{operation_id}", response_model=DurableOperationResponse)
+def get_durable_operation(
+    operation_id: str,
+    session: Session = Depends(get_session),
+):
+    operation = session.get(DurableOperation, UUID(operation_id))
+    if operation is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="operation_not_found")
+    return operation
+
+
+@app.get(
+    "/v1/campaigns/{campaign_id}/retention-policy",
+    response_model=RetentionPolicyResponse,
+)
+def get_retention_policy(
+    campaign_id: str,
+    session: Session = Depends(get_session),
+):
+    policy = session.exec(
+        select(RetentionPolicy).where(RetentionPolicy.campaign_id == UUID(campaign_id))
+    ).first()
+    if policy is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="retention_policy_not_found")
+    return policy
 
 
 @app.post("/v1/agent-runs", response_model=AgentRunResponse, status_code=status.HTTP_202_ACCEPTED)

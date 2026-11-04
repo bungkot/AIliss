@@ -154,6 +154,13 @@ Add bounded AI orchestration and replaceable external boundaries only after dete
 
 ## Phase 4
 
+Phase 4 implementation is active in the repository. Executable slices cover
+PostgreSQL pool configuration, migration compatibility, Docker smoke coverage,
+readiness and metrics endpoints, durable operation contracts, split
+Redis/Celery worker profiles, retention policies, export/archive controls, and
+audited purge behavior. Security review, production legal approval, backup
+automation, alerting, and operational ownership remain release gates.
+
 Harden production behavior, operating controls, deployment, security, and recovery.
 
 ### Step 4.1: Production persistence and execution

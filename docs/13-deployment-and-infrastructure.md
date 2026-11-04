@@ -73,6 +73,12 @@ Optional Compose profiles are:
 - `storage`: S3-compatible storage such as MinIO
 - `observability`: Prometheus and Grafana
 
+The explicit production-rnd Compose profile adds PostgreSQL, Redis, Celery
+browser/default/model workers, and API readiness. It remains a compatibility
+profile with localhost bindings and RND credentials; it does not constitute
+production authorization. Use managed secrets, TLS, HA storage, backup
+automation, and external observability for production deployment.
+
 The core stack is the default and should remain below approximately 0.75 GiB without optional browser/storage/observability components. Use host Ollama for local-model behavior. Use local filesystem storage unless object-store behavior itself is being validated.
 
 ### Production topology

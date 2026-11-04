@@ -2,7 +2,7 @@
 
 [![Python, documentation, and Docker validation](https://github.com/bungkot/AIliss/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/bungkot/AIliss/actions/workflows/ci.yml)
 
-A repository for designing and eventually implementing an AI-assisted lead discovery, extraction, qualification, enrichment, and governance platform. This repository currently contains documentation and the GitHub Copilot development harness only; it deliberately has no application implementation or dependencies.
+A repository for designing and implementing an AI-assisted lead discovery, extraction, qualification, enrichment, and governance platform. The local implementation includes FastAPI contracts, SQLModel/Alembic persistence, deterministic extraction, bounded agents, browser policy checks, PostgreSQL smoke coverage, and Phase 4 operation controls.
 
 ## Project purpose
 
@@ -26,8 +26,8 @@ flowchart LR
 
 ## Repository boundaries
 
-- **Documentation phase:** requirements, architecture, contracts, harness, ADRs, and operational readiness.
-- **Not implemented:** application source trees, migrations, package manifests, worker code, browser automation, or services.
+- **Implementation boundary:** requirements, architecture, contracts, harness, and executable RND slices are versioned together.
+- **Disabled:** live discovery, personal-field collection, hosted writes, and production legal release remain outside authorization until their gates are met.
 - Future implementation must follow the [Project Constitution](docs/00-project-constitution.md) and [Testing and Evaluation](docs/12-testing-and-evaluation.md).
 
 ## Local RND profile

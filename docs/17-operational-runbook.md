@@ -24,6 +24,10 @@ flowchart TD
 - Review duplicate and promotion queues before exports.
 - Reconcile backup and retention/deletion jobs.
 - Rotate provider/API credentials and revoke compromised sessions.
+- Check `/health/live` for process liveness and `/health/ready` for database readiness.
+- Inspect `/metrics` for request activity; export durable operation state by correlation ID.
+- Review retention policy, legal hold, export enablement, and deletion enablement before privacy actions.
+- Require explicit purge confirmation and preserve the resulting audit correlation ID.
 
 ## Incident playbooks
 

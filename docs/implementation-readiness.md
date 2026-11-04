@@ -21,6 +21,14 @@ bounds and a database-backed health check. PostgreSQL remains an explicit RND
 Docker profile; queue services, secrets management, retention automation,
 dashboards, and legal review remain deferred until their implementation slices.
 
+Phase 4 core contracts now include migration 004, bounded durable-operation
+registration, liveness/readiness separation, plain-text metrics, retention
+policy controls, audited export/archive operations, confirmed purge behavior,
+Redis/Celery worker profiles, and PostgreSQL migration smoke coverage. Personal
+data collection, live scraping, external writes, production credentials, legal
+approval, production queue rollout, and production storage remain disabled until
+their security, policy, and release gates are satisfied.
+
 ## Implementation gate
 
 Implementation may begin only when package layout and dependency policy are confirmed, source allowlisting is approved, data classification is recorded, fixture sets exist, and CI quality thresholds are configured. Security/privacy review is mandatory before personal fields or live sources are enabled.

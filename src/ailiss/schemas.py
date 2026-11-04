@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -123,3 +124,51 @@ class AgentRunResponse(BaseModel):
     bytes_used: int
     spend_usd: float
     wall_seconds: float
+
+
+class RetentionPolicyCreate(BaseModel):
+    public_business_days: int = Field(default=365, ge=1, le=3650)
+    personal_data_days: int | None = Field(default=None, ge=1, le=3650)
+    export_enabled: bool = False
+    deletion_enabled: bool = False
+    legal_hold: bool = False
+
+
+class RetentionPolicyResponse(BaseModel):
+    id: UUID
+    campaign_id: UUID
+    public_business_days: int
+    personal_data_days: int | None
+    export_enabled: bool
+    deletion_enabled: bool
+    legal_hold: bool
+
+
+class PrivacyActionCreate(BaseModel):
+    actor: str = Field(min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+    confirmation: str | None = Field(default=None, pattern=r"^(purge|delete)?$")
+
+
+class DurableOperationResponse(BaseModel):
+    id: UUID
+    campaign_id: UUID
+    task_name: str
+    worker_pool: str
+    status: str
+    attempts: int
+    max_attempts: int
+    correlation_id: str
+
+
+class DurableOperationCreate(BaseModel):
+    campaign_id: UUID
+    task_name: str = Field(
+        min_length=1,
+        max_length=128,
+        pattern=r"^[a-z][a-z0-9_.]*(?:\.[a-z][a-z0-9_.]*)*$",
+    )
+    worker_pool: str = Field(pattern=r"^(browser|default|model)$")
+    idempotency_key: str = Field(min_length=1, max_length=128)
+    payload: dict[str, Any] = Field(default_factory=dict, max_length=1000)
+    max_attempts: int = Field(default=3, ge=1, le=10)

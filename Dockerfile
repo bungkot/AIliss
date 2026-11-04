@@ -13,7 +13,7 @@ COPY src ./src
 COPY migrations ./migrations
 
 RUN python -m pip install --upgrade pip setuptools wheel \
-    && python -m pip install --no-cache-dir . \
+    && python -m pip install --no-cache-dir ".[production]" \
     && mkdir -p /app/data \
     && chown -R appuser:appuser /app
 

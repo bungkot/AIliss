@@ -34,6 +34,21 @@ Phase 3 recommendation-only agent contracts:
 Agent runs may use read-only tools only. Approval, merge, export, retention, source
 registration, and other domain mutations remain unavailable to agent tools.
 
+Phase 4 operation contracts:
+
+| Method and path | Purpose |
+|---|---|
+| GET /health/live | Report process liveness without dependency checks |
+| GET /health/ready | Report database readiness |
+| GET /metrics | Return lightweight application metrics |
+| POST /v1/operations | Register an idempotent bounded durable operation |
+| GET /v1/operations/{operation_id} | Retrieve durable operation status |
+| POST /v1/campaigns/{campaign_id}/retention-policy | Create or update campaign retention controls |
+| GET /v1/campaigns/{campaign_id}/retention-policy | Retrieve campaign retention controls |
+| POST /v1/campaigns/{campaign_id}/export | Export public lead identifiers when policy enables export |
+| POST /v1/leads/{lead_id}/archive | Archive a lead when deletion policy permits it |
+| POST /v1/campaigns/{campaign_id}/purge | Purge eligible archived leads with explicit confirmation |
+
 ```mermaid
 sequenceDiagram
   participant Client

@@ -12,6 +12,7 @@ ADRs record consequential architecture decisions. Proposed changes use `Status: 
 | [ADR-006](ADR-006-llm-provider-abstraction.md) | Ollama and configurable model provider adapters |
 | [ADR-007](ADR-007-local-rnd-profile.md) | FastAPI, SQLModel/SQLite, host Ollama, Playwright, and minimal RND services |
 | [ADR-008](ADR-008-postgresql-docker-smoke.md) | Optional PostgreSQL Docker compatibility smoke |
+| [ADR-009](ADR-009-phase4-operation-controls.md) | Phase 4 operation, retention, readiness, metrics, and worker boundaries |
 
 ```mermaid
 flowchart LR

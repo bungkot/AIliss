@@ -52,6 +52,107 @@ services:
     mem_limit: 512m
     restart: "no"
 
+  redis:
+    image: redis:7-alpine
+    profiles: ["production"]
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - redis-data:/data
+    mem_limit: 256m
+    restart: "unless-stopped"
+
+  api-production:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["production"]
+    ports:
+      - "127.0.0.1:18000:8000"
+    environment:
+      APP_NAME: "AI Lead Intelligence"
+      ENVIRONMENT: production-rnd
+      DATABASE_URL: postgresql+psycopg://ailiss:ailiss@postgres:5432/ailiss
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      DATABASE_POOL_SIZE: 5
+      DATABASE_MAX_OVERFLOW: 10
+      DATABASE_POOL_TIMEOUT_SECONDS: 10
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    cpus: 1.5
+    mem_limit: 768m
+    restart: "unless-stopped"
+
+  worker-default:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["production"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://ailiss:ailiss@postgres:5432/ailiss
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      ENVIRONMENT: production-rnd
+    command: ["celery", "-A", "ailiss.tasks:app", "worker", "--pool=solo", "--queues=default", "--concurrency=4", "--loglevel=info"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    mem_limit: 512m
+    restart: "unless-stopped"
+
+  worker-browser:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["production"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://ailiss:ailiss@postgres:5432/ailiss
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      ENVIRONMENT: production-rnd
+    command: ["celery", "-A", "ailiss.tasks:app", "worker", "--pool=solo", "--queues=browser", "--concurrency=2", "--loglevel=info"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    mem_limit: 768m
+    restart: "unless-stopped"
+
+  worker-model:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["production"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://ailiss:ailiss@postgres:5432/ailiss
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      ENVIRONMENT: production-rnd
+    command: ["celery", "-A", "ailiss.tasks:app", "worker", "--pool=solo", "--queues=model", "--concurrency=2", "--loglevel=info"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    mem_limit: 768m
+    restart: "unless-stopped"
+
 volumes:
   ailiss-data:
   postgres-data:
+  redis-data:

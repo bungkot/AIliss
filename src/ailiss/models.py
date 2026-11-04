@@ -197,3 +197,40 @@ class AgentRun(SQLModel, table=True):
     spend_usd: float = Field(default=0.0, ge=0.0)
     wall_seconds: float = Field(default=0.0, ge=0.0)
     created_at: datetime = Field(default_factory=utc_now, nullable=False)
+
+
+class DurableOperationStatus(StrEnum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    RETRYABLE = "retryable"
+    DEAD_LETTERED = "dead_lettered"
+    CANCELLED = "cancelled"
+
+
+class DurableOperation(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid_pk, primary_key=True)
+    campaign_id: uuid.UUID = Field(foreign_key="campaign.id", index=True)
+    task_name: str = Field(min_length=1, max_length=128, index=True)
+    worker_pool: str = Field(min_length=1, max_length=32)
+    idempotency_key: str = Field(min_length=1, max_length=128, unique=True, index=True)
+    status: DurableOperationStatus = Field(default=DurableOperationStatus.QUEUED)
+    payload_hash: str = Field(min_length=64, max_length=64)
+    correlation_id: str = Field(min_length=1, max_length=128, index=True)
+    attempts: int = Field(default=0, ge=0)
+    max_attempts: int = Field(default=3, ge=1, le=10)
+    last_error: str | None = Field(default=None, max_length=2000)
+    created_at: datetime = Field(default_factory=utc_now, nullable=False)
+    updated_at: datetime = Field(default_factory=utc_now, nullable=False)
+
+
+class RetentionPolicy(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid_pk, primary_key=True)
+    campaign_id: uuid.UUID = Field(foreign_key="campaign.id", unique=True, index=True)
+    public_business_days: int = Field(default=365, ge=1, le=3650)
+    personal_data_days: int | None = Field(default=None, ge=1, le=3650)
+    export_enabled: bool = Field(default=False)
+    deletion_enabled: bool = Field(default=False)
+    legal_hold: bool = Field(default=False)
+    created_at: datetime = Field(default_factory=utc_now, nullable=False)
+    updated_at: datetime = Field(default_factory=utc_now, nullable=False)
