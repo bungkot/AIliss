@@ -78,7 +78,8 @@ class OllamaProvider(ProviderAdapter):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=self.timeout_seconds) as response:
+        timeout_seconds = min(request.timeout_seconds, self.timeout_seconds)
+        with urllib.request.urlopen(req, timeout=timeout_seconds) as response:
             result = json.loads(response.read().decode("utf-8"))
         text = str(result.get("response", ""))
         tokens = int(result.get("eval_count", len(text.split())))
@@ -186,7 +187,7 @@ def bounded_graph(
                 prompt=state["prompt"],
                 model=state.get("model", "qwen3:0.6b"),
                 max_tokens=min(budget.max_tokens, 1024),
-                timeout_seconds=min(budget.max_wall_seconds, 10.0),
+                timeout_seconds=min(budget.max_wall_seconds, 60.0),
             )
         )
         state["recommendation"] = response.text

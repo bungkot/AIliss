@@ -435,7 +435,10 @@ def post_agent_run(
     provider = (
         OllamaProvider(
             settings.ollama_base_url,
-            timeout_seconds=min(settings.agent_max_wall_seconds, 10.0),
+            timeout_seconds=min(
+                settings.ollama_timeout_seconds,
+                settings.agent_max_wall_seconds,
+            ),
         )
         if payload.provider == "ollama"
         else MockProvider()

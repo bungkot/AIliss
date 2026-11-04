@@ -60,6 +60,7 @@ jobs:
       - name: Run API discovery and Ollama integration smoke
         env:
           AILISS_LIVE_OLLAMA: "1"
+          AILISS_OLLAMA_TIMEOUT_SECONDS: "30"
           AILISS_DISCOVERY_OUTPUT: ${{ runner.temp }}/wedding-leads.json
         run: python -m pytest tests/test_ollama_discovery.py -q
 
