@@ -47,6 +47,20 @@ Avoid running browser, Ollama, MinIO, Prometheus, and Grafana simultaneously. Fo
 
 The minimum RND profile can run FastAPI and SQLite directly in one local process without Docker Compose. Docker Compose may wrap only the API; SQLite remains a local file.
 
+PostgreSQL compatibility uses an explicit Docker profile instead of replacing
+the local SQLite default:
+
+- `docker compose --profile postgres up --build -d postgres api-postgres`
+- The `postgres` service is PostgreSQL 16 Alpine with a named volume.
+- `api-postgres` uses `postgresql+psycopg://ailiss:ailiss@postgres:5432/ailiss`.
+- GitHub Actions runs this same PostgreSQL profile for migration and API smoke.
+- SQLite remains available through `docker compose up api`.
+
+The API-only Compose profile stores SQLite in the `ailiss-data` named Docker
+volume at `/app/data`. A named volume avoids host-directory ownership mismatch
+across Windows, macOS, Linux, and GitHub Actions runners. It remains single-node
+RND persistence and is not a production database profile.
+
 Optional Compose profiles are:
 
 - `browser`: Playwright worker/browser

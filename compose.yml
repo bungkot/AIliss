@@ -10,9 +10,48 @@ services:
     environment:
       APP_NAME: "AI Lead Intelligence"
       ENVIRONMENT: rnd
-      DATABASE_URL: sqlite:////app/data/ailiss.db
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////app/data/ailiss.db}
     volumes:
-      - ./data:/app/data
+      - ailiss-data:/app/data
     cpus: 1.5
     mem_limit: 768m
     restart: "no"
+
+  api-postgres:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["postgres"]
+    ports:
+      - "127.0.0.1:18000:8000"
+    environment:
+      APP_NAME: "AI Lead Intelligence"
+      ENVIRONMENT: postgres-rnd
+      DATABASE_URL: postgresql+psycopg://ailiss:ailiss@postgres:5432/ailiss
+    depends_on:
+      postgres:
+        condition: service_healthy
+    cpus: 1.5
+    mem_limit: 768m
+    restart: "no"
+
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["postgres"]
+    environment:
+      POSTGRES_DB: ailiss
+      POSTGRES_USER: ailiss
+      POSTGRES_PASSWORD: ailiss
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ailiss -d ailiss"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    mem_limit: 512m
+    restart: "no"
+
+volumes:
+  ailiss-data:
+  postgres-data:

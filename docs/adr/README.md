@@ -11,6 +11,7 @@ ADRs record consequential architecture decisions. Proposed changes use `Status: 
 | [ADR-005](ADR-005-task-queue.md) | Redis, Celery, scheduling, retries, and dead-letter handling |
 | [ADR-006](ADR-006-llm-provider-abstraction.md) | Ollama and configurable model provider adapters |
 | [ADR-007](ADR-007-local-rnd-profile.md) | FastAPI, SQLModel/SQLite, host Ollama, Playwright, and minimal RND services |
+| [ADR-008](ADR-008-postgresql-docker-smoke.md) | Optional PostgreSQL Docker compatibility smoke |
 
 ```mermaid
 flowchart LR
